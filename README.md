@@ -20,7 +20,7 @@ Guía de campo de drywall para supers y foremen. Lado oficina (con PIN) para car
 - **Tipos** editables (nombre, color, quién/qué es). De fábrica: Parche drywall, Electricista (alrededor de enchufes/luces), Plomero, Fire sprinkler, Esquina/bead, Otro.
 - **T&M automático** (sin precios) en el historial de “⬆️ Para la oficina”, con el mismo formato del reporte *Trabajo extra T&M* y los botones de compartir; se puede agrupar por vista, por punto o por unidad y día. Al pegarlo en “⬇️ Recibido del campo” salen todos los campos.
 - **Límite**: no es AR de verdad (una PWA no puede anclar puntos en la pared; WebXR no existe en Safari de iPhone). Se alinea a ojo con la foto guía.
-- Datos: lista de vistas en localStorage; fotos en IndexedDB (solo en ese teléfono). Cache del service worker: ver abajo (`fto-v10`).
+- Datos: lista de vistas en localStorage; fotos en IndexedDB (solo en ese teléfono). Cache del service worker: ver abajo (`fto-v11`).
 
 **🧭 Guiar a marca con flechas** (rama `flechas-guia`, código en `guia.js`): en “👁️ Ver con cámara”.
 - Al marcar, si el teléfono da los sensores de orientación (DeviceOrientationEvent; en iPhone hay que tocar “🧭 Activar sensores”), se guarda hacia dónde apuntaba el teléfono y el rumbo/inclinación de cada punto (campo de visión de la cámara aproximado: 64° del lado largo).
@@ -56,3 +56,12 @@ Guía de campo de drywall para supers y foremen. Lado oficina (con PIN) para car
 - Revisar con hablante nativo: **Kreyòl ayisyen (ht), Русский (ru), Українська (uk)** (en, pt, fr también conviene revisarlos en obra).
 - Limitaciones: el enlace para compartir no lleva fotos; las fotos quedan solo en el teléfono (y en el respaldo); cada idioma de carpetas necesita una visita con conexión para quedar guardado; el dictado en kreyòl depende del navegador (muchos no lo soportan); las traducciones son ayuda, manda el original en inglés.
 - Al cambiar `specs.js`, actualizar los textos traducidos y volver a generar los `specs_<idioma>.js` (y subir `SPECS_VER`).
+
+**📷 Cámara grande con flechas en vivo** (rama `flechas-vivo`; cache del service worker: `fto-v11`):
+- 🧭 Guiar (Buscar marcas, Ver con cámara, Solo ver y el botón 🧭 de la lista de marcas) abre la cámara EN VIVO a pantalla completa. Encima del video: foto guía semitransparente (👻 prender/apagar + transparencia), puntos de colores y una flecha grande que se recalcula en cada cuadro (sensores de orientación + `requestAnimationFrame`, suavizado ~0.12 s).
+- Flecha en 8 direcciones con texto (“Gira a la izquierda”, “Sube un poco”, “Gira a la derecha y baja”…) y grados aproximados. Más chica y verde al acercarse; a ≤4° sale el anillo verde “✓ ¡Aquí está!” en el lugar de la marca.
+- Si te pasas (cambia el lado en el eje que más falta), la flecha se voltea: “Te pasaste, regresa a la …”. De espaldas: “Está detrás de ti: date la vuelta…”. Marca en otra vista: botón “📷 Ir a la vista”.
+- Adelante/atrás: al marcar se guarda la escala de referencia de la cámara (`ref`: tamaño del video, zoom, campo de visión). En vivo se compara la imagen con la foto guía (bordes reducidos, correlación por escala y desplazamiento) → flechas en las esquinas “Acércate…” / “Aléjate…” / “Distancia bien”. Si el parecido no es confiable, lo dice (“sin dato fiable”) y toca alinear a ojo con la transparencia de la foto guía.
+- Sin sensores: si la imagen se parece, la flecha sale de comparar con la foto guía (aproximado); si no, solo texto y foto guía. ✕ Salir vuelve a la vista normal y detiene el ciclo.
+- Todo en los 7 idiomas, sin red. Limitaciones: no es AR de verdad; la brújula falla cerca de metal; la comparación de imagen falla en paredes lisas, poca luz o si cambió mucho la escena; la escala medida es aproximada (±10 %).
+

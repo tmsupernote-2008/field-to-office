@@ -63,7 +63,11 @@ async function fotoConPuntos(cid,cods){const c=capById(cid);if(!c)return null;co
  dibujarPuntos(ctx,cv.width,cv.height,cods?c.puntos.filter(p=>cods.includes(p.cod)):c.puntos);return canvasBlob(cv,.85)}
 
 /* ---- cámara ---- */
-const CAM={stream:null,pend:[],tipo:null,frz:false,aspect:4/3,starting:null,ori:null};
+const CAM={stream:null,pend:[],tipo:null,frz:false,aspect:4/3,starting:null,ori:null,ref:null};
+/* fto-v11: referencia de escala de la foto guía (para “acércate / aléjate” en la guía en vivo): resolución del video,
+   zoom de la cámara si el navegador lo dice y campo de visión aproximado. Solo para fotos tomadas con la cámara en vivo. */
+function camRef(v,c){try{const tr=CAM.stream&&CAM.stream.getVideoTracks()[0],st=tr&&tr.getSettings?tr.getSettings():{},f=fovDe(c.width,c.height);
+ return {vw:v.videoWidth,vh:v.videoHeight,zoom:typeof st.zoom==='number'?st.zoom:1,fh:f.h,fv:f.v,ts:Date.now()}}catch(e){return null}}
 function camStop(){if(CAM.stream){CAM.stream.getTracks().forEach(t=>t.stop());CAM.stream=null}CAM.starting=null}
 function camMsg(t){const m=$('camMsg');if(!m)return;if(!t){m.classList.add('hidden');return}m.innerHTML=t;m.classList.remove('hidden')}
 async function camStart(){const v=$('vid');if(!v)return false;
@@ -73,7 +77,9 @@ async function camStart(){const v=$('vid');if(!v)return false;
    const s=await pr;if(!$('vid')||CAM.starting!==pr){s.getTracks().forEach(t=>t.stop());return false}CAM.stream=s}
   const vv=$('vid');vv.srcObject=CAM.stream;vv.setAttribute('playsinline','');vv.muted=true;await vv.play().catch(()=>{});camMsg('');return true}
  catch(e){CAM.starting=null;const n=e&&e.name;camMsg((n==='NotAllowedError'||n==='SecurityError'?'Sin permiso para la cámara. Dale permiso en los ajustes del navegador y vuelve a entrar.':n==='NotFoundError'?'No se encontró cámara en este aparato.':'No se pudo abrir la cámara ('+esc(n||e)+').')+'<br>Puedes usar “📁 Usar una foto”.');return false}}
-function fitStage(aspect){const st=$('stage');if(!st)return;const W=(st.parentElement&&st.parentElement.clientWidth)||360,H=Math.max(220,Math.round(window.innerHeight*.6));let w=W,h=w/aspect;if(h>H){h=H;w=h*aspect}st.style.width=Math.round(w)+'px';st.style.height=Math.round(h)+'px'}
+function fitStage(aspect){const st=$('stage');if(!st)return;
+ if(st.classList.contains('full')){const W=innerWidth,H=innerHeight;let w=W,h=w/aspect;if(h>H){h=H;w=h*aspect}st.style.width=Math.round(w)+'px';st.style.height=Math.round(h)+'px';return}
+ const W=(st.parentElement&&st.parentElement.clientWidth)||360,H=Math.max(220,Math.round(window.innerHeight*.6));let w=W,h=w/aspect;if(h>H){h=H;w=h*aspect}st.style.width=Math.round(w)+'px';st.style.height=Math.round(h)+'px'}
 /* (estos eventos pueden llegar antes de que cargue el script principal: no usar $ aquí) */
 document.addEventListener('visibilitychange',()=>{const v=document.getElementById('vid');if(document.hidden)camStop();else if(v&&!v.classList.contains('hidden'))camStart()});
 window.addEventListener('resize',()=>{if(document.getElementById('stage')){fitStage(CAM.aspect);if(typeof guiaTick==='function')guiaTick()}});
@@ -141,7 +147,7 @@ function verTMCap(cid){if(!exigeSuper())return;const c=capById(cid);const h=lsGe
 function guardarCap(c){const A=capsAll(),i=A.findIndex(x=>x.id===c.id);if(i>=0)A[i]=c;else A.unshift(c);return lsSet(LSCAP,A)}
 
 /* ---- pantalla: MARCAR (cámara en vivo) ---- */
-function abrirMarcar(u){if(!exigeSuper())return;CAM.pend=[];CAM.frz=false;CAM.ori=null;vista={pantalla:'marcar',unidad:u||'',desde:vista.desde,lado:vista.lado,q:vista.q};render()}
+function abrirMarcar(u){if(!exigeSuper())return;CAM.pend=[];CAM.frz=false;CAM.ori=null;CAM.ref=null;vista={pantalla:'marcar',unidad:u||'',desde:vista.desde,lado:vista.lado,q:vista.q};render()}
 function vMarcar(p){if(!esSuper()){vista={pantalla:'marcas',lado:vista.lado};return vMarcas(p)}const T=tiposRep();if(!CAM.tipo||!T.some(t=>t.id===CAM.tipo))CAM.tipo=T[0].id;const u=vista.unidad||'',pu=p.unidades.find(x=>x.unidad===u);
  const back=u?`irMarcasU(this.dataset.u,vista.desde==='unidad'?'unidad':'marcas')`:`vista={pantalla:'marcas',lado:vista.lado};render()`;
  return `<button class="sec sm" data-u="${esc(u)}" onclick="if(!CAM.pend.length||confirm('¿Salir sin guardar los puntos?')){${back}}">← Volver</button>${banEj(p)}
@@ -167,15 +173,15 @@ function pintarPend(){const P=pendNums();$('dots').innerHTML=dotsHTML(P,true);
  $('pendList').innerHTML=P.map((x,i)=>{const t=ptTipo(x);return `<div class="pitem"><span class="sw" style="background:${esc(t.color)}"></span><b>${esc(x.cod)}</b> ${esc(t.nombre)} <button class="red sm" style="float:right;padding:3px 9px" onclick="CAM.pend.splice(${i},1);pintarPend()">✕</button></div>`}).join('')}
 function congelar(){const v=$('vid'),c=$('frz');if(!v||!v.videoWidth)return false;const s=Math.min(1,1280/Math.max(v.videoWidth,v.videoHeight));
  c.width=Math.round(v.videoWidth*s);c.height=Math.round(v.videoHeight*s);c.getContext('2d').drawImage(v,0,0,c.width,c.height);CAM.aspect=c.width/c.height;fitStage(CAM.aspect);
- CAM.ori=oriSnap();c.classList.remove('hidden');v.classList.add('hidden');$('frzBadge').classList.remove('hidden');CAM.frz=true;camStop();return true}
-function volverVivo(){if(CAM.pend.length&&!confirm(`Se borran los ${CAM.pend.length} puntos sin guardar. ¿Seguir?`))return;CAM.pend=[];CAM.frz=false;CAM.ori=null;$('frz').classList.add('hidden');$('vid').classList.remove('hidden');$('frzBadge').classList.add('hidden');pintarPend();camStart()}
+ CAM.ori=oriSnap();CAM.ref=camRef(v,c);c.classList.remove('hidden');v.classList.add('hidden');$('frzBadge').classList.remove('hidden');CAM.frz=true;camStop();return true}
+function volverVivo(){if(CAM.pend.length&&!confirm(`Se borran los ${CAM.pend.length} puntos sin guardar. ¿Seguir?`))return;CAM.pend=[];CAM.frz=false;CAM.ori=null;CAM.ref=null;$('frz').classList.add('hidden');$('vid').classList.remove('hidden');$('frzBadge').classList.add('hidden');pintarPend();camStart()}
 function undoPunto(){if(CAM.pend.length){CAM.pend.pop();pintarPend()}}
 function tocarStage(e){const st=$('stage');if(!st)return;if(!CAM.frz&&!congelar()){toast('La cámara todavía no está lista');return}
  const r=st.getBoundingClientRect(),x=Math.min(1,Math.max(0,(e.clientX-r.left)/r.width)),y=Math.min(1,Math.max(0,(e.clientY-r.top)/r.height));
  const t=tipoRep(CAM.tipo);CAM.pend.push({tipo:t.id,nom:t.nombre,col:t.color,x:+x.toFixed(4),y:+y.toFixed(4)});pintarPend()}
 async function fotoMarcar(inp){const f=inp.files&&inp.files[0];if(!f)return;try{const u=URL.createObjectURL(f),im=await cargarImg(u),c=$('frz'),s=Math.min(1,1280/Math.max(im.naturalWidth,im.naturalHeight));
  c.width=Math.round(im.naturalWidth*s);c.height=Math.round(im.naturalHeight*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);
- camStop();CAM.pend=[];CAM.frz=true;CAM.ori=null;CAM.aspect=c.width/c.height;fitStage(CAM.aspect);c.classList.remove('hidden');$('vid').classList.add('hidden');camMsg('');$('frzBadge').classList.remove('hidden');pintarPend();toast('Foto lista: toca para marcar')}catch(e){alert('No se pudo leer la foto.')}}
+ camStop();CAM.pend=[];CAM.frz=true;CAM.ori=null;CAM.ref=null;CAM.aspect=c.width/c.height;fitStage(CAM.aspect);c.classList.remove('hidden');$('vid').classList.add('hidden');camMsg('');$('frzBadge').classList.remove('hidden');pintarPend();toast('Foto lista: toca para marcar')}catch(e){alert('No se pudo leer la foto.')}}
 function setupMarcar(){const st=$('stage');fitStage(CAM.aspect);st.addEventListener('click',tocarStage);selTipo(CAM.tipo);
  const v=$('vid');v.addEventListener('loadedmetadata',()=>{if(!CAM.frz&&v.videoWidth){CAM.aspect=v.videoWidth/v.videoHeight;fitStage(CAM.aspect)}});v.addEventListener('resize',()=>{if(!CAM.frz&&v.videoWidth){CAM.aspect=v.videoWidth/v.videoHeight;fitStage(CAM.aspect)}});
  pintarPend();camStart();sensStart();sensEstado()}
@@ -189,10 +195,11 @@ async function guardarVista(){if(guardando||!exigeSuper())return;const p=proj(),
   const s=seqGet(p.id),pts=CAM.pend.map((x,i)=>({num:s+i+1,cod:cod(s+i+1),tipo:x.tipo,nom:x.nom,col:x.col,x:x.x,y:x.y}));seqSet(p.id,s+pts.length);
   const cap={id:cid,pid:p.id,proyecto:p.nombre,unidad:u,piso:$('m_piso').value.trim(),area:$('m_area').value.trim(),nota:(($('m_nota')||{}).value||'').trim(),ts:now.getTime(),fecha:fechaTxt(now),nombre,w:c.width,h:c.height,puntos:pts,tm:[]};
   try{oriGuardar(cap,CAM.ori)}catch(e){}
+  if(CAM.ref)cap.ref=CAM.ref;
   if(!guardarCap(cap)){await fotoDel(cid).catch(()=>{});seqSet(p.id,s);return alert('No hay espacio en el teléfono para guardar la vista.')}
   cap.tm=crearTMs(cap,mcfg().agrupar);guardarCap(cap);
   try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
-  CAM.pend=[];CAM.frz=false;CAM.ori=null;vista={pantalla:'verCap',cid,m:'foto',nuevo:1,desde:vista.desde,lado:vista.lado,q:vista.q};render();
+  CAM.pend=[];CAM.frz=false;CAM.ori=null;CAM.ref=null;vista={pantalla:'verCap',cid,m:'foto',nuevo:1,desde:vista.desde,lado:vista.lado,q:vista.q};render();
   toast(`Vista guardada · ${pts.length} punto${pts.length===1?'':'s'} · T&M creado`)}finally{guardando=false}}
 
 /* ---- T&M automático ---- */
@@ -230,12 +237,12 @@ function vCap(p,cid,m){const c=capById(cid);if(!c){vista={pantalla:'marcas',lado
   <label for="ghostOp">Transparencia de la foto guía: <b id="opVal">${op}%</b></label><input type="range" id="ghostOp" min="0" max="100" step="5" value="${op}" oninput="vista.op=+this.value;$('ghost').style.opacity=this.value/100;$('opVal').textContent=this.value+'%'"></div>`
  :`<p><a class="btn sec" id="lnkCapFoto" >⬇️ Guardar foto con puntos</a></p>`}
  ${vista.nuevo?`<div class="card" id="guardadoOk" style="border-color:var(--ok)"><b>✅ Vista guardada</b><div class="mut">Se creó el T&M en “⬆️ Para la oficina”.</div><p><button class="sm" id="btnIrTM" onclick="verTMCap('${esc(c.id)}')">🛠️ Ver y mandar el T&M</button></p></div>`:''}
- <div class="card" id="capCard"><div class="big">${esc(uLabel(c.unidad))}${c.area?' · '+esc(c.area):''}</div><div class="mut">${c.piso?'Piso '+esc(c.piso)+' · ':''}${esc(c.fecha)}${c.nombre?' · 📷 '+esc(c.nombre):''} · ${esc(c.id)}</div>${c.nota?`<div id="capNota">📝 ${esc(c.nota)}</div>`:''}<div class="mut" id="capOri">${c.ori?'🧭 Dirección guardada'+(c.ori.abs?' (con brújula)':' (sin brújula)'):'🧭 Sin dirección guardada: solo foto guía'}</div><div style="margin-top:6px">${chipsConteo(c.puntos)}</div></div>
- <h3>📍 Puntos (${c.puntos.length})</h3>${c.puntos.map(x=>{const t=ptTipo(x);return `<div class="pitem" data-cod="${esc(x.cod)}"><span class="sw" style="background:${esc(t.color)}"></span><b>${esc(x.cod)}</b> ${esc(t.nombre)}${cam?`<button class="sec sm" style="float:right;padding:3px 9px" onclick="guiaSel('${esc(x.cod)}');$('stage').scrollIntoView({block:'center'})">🧭 Guiar</button>`:''}</div>`}).join('')}
+ <div class="card" id="capCard"><div class="big">${esc(uLabel(c.unidad))}${c.area?' · '+esc(c.area):''}</div><div class="mut">${c.piso?'Piso '+esc(c.piso)+' · ':''}${esc(c.fecha)}${c.nombre?' · 📷 '+esc(c.nombre):''} · ${esc(c.id)}</div>${c.nota?`<div id="capNota">📝 ${esc(c.nota)}</div>`:''}<div class="mut" id="capOri">${c.ori?'🧭 Dirección guardada'+(c.ori.abs?' (con brújula)':' (sin brújula)'):'🧭 Sin dirección guardada: solo foto guía'}${c.ref?' · 📏 Escala de referencia guardada':''}</div><div style="margin-top:6px">${chipsConteo(c.puntos)}</div></div>
+ <h3>📍 Puntos (${c.puntos.length})</h3>${c.puntos.map(x=>{const t=ptTipo(x);return `<div class="pitem" data-cod="${esc(x.cod)}"><span class="sw" style="background:${esc(t.color)}"></span><b>${esc(x.cod)}</b> ${esc(t.nombre)}${cam?`<button class="sec sm" style="float:right;padding:3px 9px" onclick="guiaSel('${esc(x.cod)}');vivoAbrir()">🧭 Guiar</button>`:''}</div>`}).join('')}
  ${esSuper()?`<div class="row" style="margin-top:10px"><button class="sec" onclick="verTMCap('${esc(c.id)}')">🛠️ T&M</button><button class="sec" data-u="${esc(c.unidad)}" onclick="abrirMarcar(this.dataset.u)">📷 Marcar otra vista</button></div>`:rolAviso()}`}
 async function setupCap(){const c=capById(vista.cid);if(!c)return;const st=$('stage');CAM.aspect=c.w/c.h;fitStage(CAM.aspect);
  const im=$('ghost')||$('capImg');try{const u=await fotoURL(c.id);if(u&&im)im.src=u;else if(!u&&st)st.insertAdjacentHTML('beforeend','<div class="cammsg">La foto de esta vista ya no está en el teléfono.</div>')}catch(e){}
- if($('vid')){camStart();sensStart();sensEstado();guiaUpd()}
+ if($('vid')){camStart();sensStart();sensEstado();guiaUpd();if(typeof vivoAplicar==='function')vivoAplicar()}
  const l=$('lnkCapFoto');if(l){try{const b=await fotoConPuntos(c.id);if(b&&$('lnkCapFoto')){l.href=URL.createObjectURL(b);l.download='marcas-'+c.id+'.jpg'}}catch(e){}}}
 async function llenarThumbs(){for(const im of document.querySelectorAll('img[data-foto]')){try{const u=await fotoURL(im.dataset.foto);if(u)im.src=u}catch(e){}}}
 
