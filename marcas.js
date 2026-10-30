@@ -30,7 +30,7 @@ function capsProj(pid){return capsAll().filter(c=>c.pid===pid)}
 function capById(id){return capsAll().find(c=>c.id===id)}
 function capsUnidad(pid,u){return capsProj(pid).filter(c=>c.unidad===u).sort((a,b)=>b.ts-a.ts)}
 function mcfg(){try{const v=JSON.parse(localStorage.getItem(LSMCFG));if(v&&AGRUPAR[v.agrupar])return v}catch(e){}return {agrupar:'vista'}}
-function setAgrupar(v){if(AGRUPAR[v]){localStorage.setItem(LSMCFG,JSON.stringify({agrupar:v}));toast('T&M: '+AGRUPAR[v])}}
+function setAgrupar(v){if(!exigeSuper())return render();if(AGRUPAR[v]){localStorage.setItem(LSMCFG,JSON.stringify({agrupar:v}));toast('T&M: '+AGRUPAR[v])}}
 function seqGet(pid){try{return (JSON.parse(localStorage.getItem(LSSEQ))||{})[pid]||0}catch(e){return 0}}
 function seqSet(pid,n){let o={};try{o=JSON.parse(localStorage.getItem(LSSEQ))||{}}catch(e){}o[pid]=n;localStorage.setItem(LSSEQ,JSON.stringify(o))}
 function cod(n){return 'P-'+String(n).padStart(3,'0')}
@@ -92,18 +92,20 @@ function marcasRes(p,q){q=nrm(q).trim();const L=unidadesMarcas(p).filter(x=>!q||
  return L.map(x=>{const cs=capsUnidad(p.id,x.u),pts=cs.flatMap(c=>c.puntos);return `<div class="card list-item munit" data-u="${esc(x.u)}" onclick="irMarcasU(this.dataset.u,'marcas')"><div class="big">${esc(uLabel(x.u))}</div><div class="mut">${x.piso?'Piso '+esc(x.piso)+' · ':''}${cs.length?cs.length+' vista'+(cs.length===1?'':'s')+' · '+pts.length+' punto'+(pts.length===1?'':'s'):'Sin marcas todavía'}</div>${pts.length?'<div>'+chipsConteo(pts)+'</div>':''}</div>`}).join('')}
 function vMarcas(p){const T=tiposRep(),cfg=mcfg();
  return `<button class="sec sm" onclick="vista={pantalla:'inicio',lado:vista.lado};render()">← Volver</button>${banEj(p)}
- <div class="card" id="marcasHome"><h3>📸 Marcar reparaciones</h3><div class="mut">Toca “Marcar nueva vista”, apunta la cámara a la pared y toca la imagen donde va cada reparación. Cada punto lleva un número automático (P-001, P-002…) y se crea el T&M solo (sin precios).</div>
- <p><button id="btnNuevaMarca" onclick="abrirMarcar('')">📷 Marcar nueva vista</button></p></div>
+ <div class="card" id="marcasHome"><h3>📸 Marcar reparaciones</h3><div class="mut">${esSuper()?'':'Para buscar, toca “🔎 Buscar marcas”: abre la cámara y te guía con flechas. '}Toca “Marcar nueva vista”, apunta la cámara a la pared y toca la imagen donde va cada reparación. Cada punto lleva un número automático (P-001, P-002…) y se crea el T&M solo (sin precios).</div>
+ <p><button id="btnNuevaMarca" class="big1" ${esSuper()?'':'disabled'} onclick="abrirMarcar('')">📷 Marcar nueva vista</button></p>
+ <p><button id="btnBuscarMarcas" class="big1 buscar" onclick="buscarMarcas()">🔎 Buscar marcas</button></p>
+ ${esSuper()?'':rolAviso()}</div>
  <div class="modnota" id="notaAR">${NOTA_AR}</div>
  <label for="qm">🔎 Busca la unidad o el pasillo para ver sus marcas</label><input id="qm" placeholder="Ej: 201, pasillo, piso 3" autocomplete="off">
  <div id="mres">${marcasRes(p,vista.qm||'')}</div>
  <h3>🎨 Tipos de reparación (colores)</h3><div class="card" id="leyenda">${T.map(t=>`<div class="leyrow"><span class="sw big" style="background:${esc(t.color)}"></span><div><b>${esc(t.nombre)}</b><div class="mut">${esc(t.quien||'')}</div></div></div>`).join('')}
- <p><button class="sec sm" id="btnTipos" onclick="vista={pantalla:'tiposRep',lado:vista.lado};render()">✏️ Editar tipos y colores</button></p></div>
- <div class="card"><h3>🛠️ T&M automático</h3><div class="mut">Cada vista guardada crea su T&M en “⬆️ Para la oficina” (historial), listo para mandar por WhatsApp, SMS, correo o copiar. Sin precios.</div>
- <label for="cfgAgrupar">Cómo agrupar</label><select id="cfgAgrupar" onchange="setAgrupar(this.value)">${Object.entries(AGRUPAR).map(([k,v])=>`<option value="${k}" ${cfg.agrupar===k?'selected':''}>${esc(v)}</option>`).join('')}</select></div>`}
+ ${esSuper()?`<p><button class="sec sm" id="btnTipos" onclick="vista={pantalla:'tiposRep',lado:vista.lado};render()">✏️ Editar tipos y colores</button></p>`:''}</div>
+ ${esSuper()?`<div class="card" id="cardTM"><h3>🛠️ T&M automático</h3><div class="mut">Cada vista guardada crea su T&M en “⬆️ Para la oficina” (historial), listo para mandar por WhatsApp, SMS, correo o copiar. Sin precios.</div>
+ <label for="cfgAgrupar">Cómo agrupar</label><select id="cfgAgrupar" onchange="setAgrupar(this.value)">${Object.entries(AGRUPAR).map(([k,v])=>`<option value="${k}" ${cfg.agrupar===k?'selected':''}>${esc(v)}</option>`).join('')}</select></div>`:''}`}
 
 /* ---- pantalla: editar tipos ---- */
-function vTiposRep(){const T=tiposRep();
+function vTiposRep(){if(!esSuper()){vista={pantalla:'marcas',lado:vista.lado};return vMarcas(proj())}const T=tiposRep();
  return `<button class="sec sm" onclick="vista={pantalla:'marcas',lado:vista.lado};render()">← Volver</button>
  <div class="card" id="tiposEdit"><h3>✏️ Tipos de reparación</h3><div class="mut">Cada tipo tiene su color y quién/qué es. Los puntos ya guardados guardan su tipo; si borras un tipo, sus puntos quedan con el último nombre y color.</div>
  ${T.map((t,i)=>`<div class="card trow" data-id="${esc(t.id)}"><div class="row"><input type="color" class="t_col" value="${esc(t.color)}" style="flex:0 0 56px;height:46px;padding:2px"><input class="t_nom" value="${esc(t.nombre)}" placeholder="Nombre"><button class="red sm" style="flex:0" onclick="this.closest('.trow').remove()">✕</button></div><label>Quién / qué es</label><input class="t_quien" value="${esc(t.quien||'')}"></div>`).join('')}
@@ -112,7 +114,7 @@ function vTiposRep(){const T=tiposRep();
  <p><button id="btnGuardarTipos" onclick="guardarTipos()">💾 Guardar tipos</button></p></div>`}
 function addTipoRow(){const d=document.createElement('div');d.className='card trow';d.dataset.id='t'+Date.now().toString(36);
  d.innerHTML=`<div class="row"><input type="color" class="t_col" value="#ff9f0a" style="flex:0 0 56px;height:46px;padding:2px"><input class="t_nom" placeholder="Nombre del tipo"><button class="red sm" style="flex:0" onclick="this.closest('.trow').remove()">✕</button></div><label>Quién / qué es</label><input class="t_quien">`;$('tnuevos').appendChild(d)}
-function guardarTipos(){const T=[...document.querySelectorAll('.trow')].map(r=>({id:r.dataset.id,nombre:r.querySelector('.t_nom').value.trim(),color:r.querySelector('.t_col').value,quien:r.querySelector('.t_quien').value.trim()})).filter(t=>t.nombre);
+function guardarTipos(){if(!exigeSuper())return;const T=[...document.querySelectorAll('.trow')].map(r=>({id:r.dataset.id,nombre:r.querySelector('.t_nom').value.trim(),color:r.querySelector('.t_col').value,quien:r.querySelector('.t_quien').value.trim()})).filter(t=>t.nombre);
  if(!T.length)return alert('Deja al menos un tipo.');lsSet(LSTREP,T);toast('Tipos guardados');vista={pantalla:'marcas',lado:vista.lado};render()}
 
 /* ---- pantalla: marcas de una unidad / pasillo ---- */
@@ -121,22 +123,26 @@ function vMarcasUnidad(p,u){const cs=capsUnidad(p.id,u),pts=cs.flatMap(c=>c.punt
  return `<button class="sec sm" data-u="${esc(u)}" onclick="${back};render()">← Volver</button>${banEj(p)}
  <div class="card" id="marcasU"><div class="big">📸 ${esc(uLabel(u))}</div><div class="mut">${pu&&pu.piso?'Piso '+esc(pu.piso)+' · ':''}${cs.length} vista${cs.length===1?'':'s'} · <b id="totU">${pts.length}</b> punto${pts.length===1?'':'s'}</div>
  <div id="conteoU" style="margin-top:6px">${chipsConteo(pts)}</div>
- <div class="row" style="margin-top:10px"><button id="btnMarcarU" data-u="${esc(u)}" onclick="abrirMarcar(this.dataset.u)">📷 Marcar nueva vista</button>${cs.length?`<button class="sec" id="btnVerU" onclick="abrirCap('${esc(cs[0].id)}','cam')">👁️ Ver con cámara</button>`:''}</div></div>
+ <div class="row" style="margin-top:10px"><button id="btnMarcarU" data-u="${esc(u)}" ${esSuper()?'':'disabled'} onclick="abrirMarcar(this.dataset.u)">📷 Marcar nueva vista</button>${cs.length?`<button class="sec" id="btnVerU" onclick="abrirCap('${esc(cs[0].id)}','cam')">👁️ Ver con cámara</button>`:''}</div>${esSuper()?'':rolAviso()}</div>
  ${cs.length?'<h3>🖼️ Vistas guardadas</h3>':'<div class="card mut" id="sinMarcas">Todavía no hay marcas en esta unidad.</div>'}
  ${cs.map(c=>`<div class="card capitem" data-cid="${esc(c.id)}"><div class="row" style="align-items:flex-start"><img class="thumb" data-foto="${esc(c.id)}" alt="foto" style="flex:0 0 96px" onclick="abrirCap('${esc(c.id)}','foto')"><div><b>${esc(c.area||'Sin área')}</b><div class="mut">${esc(c.fecha)}${c.nombre?' · 📷 '+esc(c.nombre):''}</div><div class="mut">${esc(c.puntos[0].cod)}${c.puntos.length>1?' – '+esc(c.puntos[c.puntos.length-1].cod):''}</div><div>${chipsConteo(c.puntos)}</div></div></div>
-  <div class="row" style="margin-top:8px"><button class="sm" onclick="abrirCap('${esc(c.id)}','cam')">👁️ Cámara</button><button class="sec sm" onclick="abrirCap('${esc(c.id)}','foto')">🖼️ Foto</button><button class="sec sm" onclick="verTMCap('${esc(c.id)}')">🛠️ T&M</button><button class="red sm" style="flex:0" onclick="borrarCap('${esc(c.id)}')">🗑️</button></div></div>`).join('')}
+  <div class="row" style="margin-top:8px"><button class="sm" onclick="abrirCap('${esc(c.id)}','cam')">👁️ Cámara</button><button class="sec sm" onclick="abrirCap('${esc(c.id)}','foto')">🖼️ Foto</button>${esSuper()?`<button class="sec sm" onclick="verTMCap('${esc(c.id)}')">🛠️ T&M</button><button class="red sm" style="flex:0" onclick="borrarCap('${esc(c.id)}')">🗑️</button>`:''}</div></div>`).join('')}
  <div class="modnota">${NOTA_AR}</div>`}
-function abrirCap(cid,m){vista={pantalla:'verCap',cid,m:m||'cam',desde:vista.desde,lado:vista.lado,q:vista.q};render()}
-async function borrarCap(cid){const c=capById(cid);if(!c||!confirm(`¿Borrar esta vista y sus ${c.puntos.length} puntos? Los números no se vuelven a usar. Los T&M ya creados se quedan en el historial (sin la foto).`))return;
+function abrirCap(cid,m,guia){vista={pantalla:'verCap',cid,m:m||'cam',desde:vista.desde,lado:vista.lado,q:vista.q};if(guia)vista.guia=guia;render()}
+/* 🔎 Buscar marcas: un toque abre “Ver con cámara” (la vista más nueva del proyecto) con la lista de TODAS las marcas para guiarse */
+function buscarMarcas(){const p=proj(),cs=capsProj(p.id).sort((a,b)=>b.ts-a.ts);
+ if(!cs.length){toast('Todavía no hay marcas en este proyecto');return}
+ vista={pantalla:'verCap',cid:cs[0].id,m:'cam',buscar:1,gq:'',desde:'marcas',lado:vista.lado,q:vista.q};render()}
+async function borrarCap(cid){if(!exigeSuper())return;const c=capById(cid);if(!c||!confirm(`¿Borrar esta vista y sus ${c.puntos.length} puntos? Los números no se vuelven a usar. Los T&M ya creados se quedan en el historial (sin la foto).`))return;
  lsSet(LSCAP,capsAll().filter(x=>x.id!==cid));try{await fotoDel(cid)}catch(e){}toast('Vista borrada');render()}
-function verTMCap(cid){const c=capById(cid);const h=lsGet(LSENV);const r=c&&(c.tm||[]).map(id=>h.find(x=>x.id===id)).find(Boolean);
+function verTMCap(cid){if(!exigeSuper())return;const c=capById(cid);const h=lsGet(LSENV);const r=c&&(c.tm||[]).map(id=>h.find(x=>x.id===id)).find(Boolean);
  if(r){vista={pantalla:'reporte',rid:r.id,lado:'para'};return render()}
  if(c&&confirm('El T&M de esta vista ya no está en el historial. ¿Crearlo otra vez?')){const ids=crearTMs(c,'vista');c.tm=ids;guardarCap(c);vista={pantalla:'reporte',rid:ids[0],lado:'para'};render()}}
 function guardarCap(c){const A=capsAll(),i=A.findIndex(x=>x.id===c.id);if(i>=0)A[i]=c;else A.unshift(c);return lsSet(LSCAP,A)}
 
 /* ---- pantalla: MARCAR (cámara en vivo) ---- */
-function abrirMarcar(u){CAM.pend=[];CAM.frz=false;CAM.ori=null;vista={pantalla:'marcar',unidad:u||'',desde:vista.desde,lado:vista.lado,q:vista.q};render()}
-function vMarcar(p){const T=tiposRep();if(!CAM.tipo||!T.some(t=>t.id===CAM.tipo))CAM.tipo=T[0].id;const u=vista.unidad||'',pu=p.unidades.find(x=>x.unidad===u);
+function abrirMarcar(u){if(!exigeSuper())return;CAM.pend=[];CAM.frz=false;CAM.ori=null;vista={pantalla:'marcar',unidad:u||'',desde:vista.desde,lado:vista.lado,q:vista.q};render()}
+function vMarcar(p){if(!esSuper()){vista={pantalla:'marcas',lado:vista.lado};return vMarcas(p)}const T=tiposRep();if(!CAM.tipo||!T.some(t=>t.id===CAM.tipo))CAM.tipo=T[0].id;const u=vista.unidad||'',pu=p.unidades.find(x=>x.unidad===u);
  const back=u?`irMarcasU(this.dataset.u,vista.desde==='unidad'?'unidad':'marcas')`:`vista={pantalla:'marcas',lado:vista.lado};render()`;
  return `<button class="sec sm" data-u="${esc(u)}" onclick="if(!CAM.pend.length||confirm('¿Salir sin guardar los puntos?')){${back}}">← Volver</button>${banEj(p)}
  <div class="card" id="marcarCard" style="padding:10px"><div class="row"><div><label for="m_unidad" style="margin-top:0">Unidad / pasillo *</label><input id="m_unidad" list="unidadesListM" value="${esc(u)}" autocomplete="off" oninput="const x=proj().unidades.find(z=>z.unidad===this.value);if(x&&!$('m_piso').value)$('m_piso').value=x.piso"></div><div style="flex:0 0 28%"><label for="m_piso" style="margin-top:0">Piso</label><input id="m_piso" inputmode="numeric" value="${esc(pu?pu.piso:'')}"></div></div>
@@ -174,7 +180,7 @@ function setupMarcar(){const st=$('stage');fitStage(CAM.aspect);st.addEventListe
  const v=$('vid');v.addEventListener('loadedmetadata',()=>{if(!CAM.frz&&v.videoWidth){CAM.aspect=v.videoWidth/v.videoHeight;fitStage(CAM.aspect)}});v.addEventListener('resize',()=>{if(!CAM.frz&&v.videoWidth){CAM.aspect=v.videoWidth/v.videoHeight;fitStage(CAM.aspect)}});
  pintarPend();camStart();sensStart();sensEstado()}
 let guardando=false;
-async function guardarVista(){if(guardando)return;const p=proj(),u=$('m_unidad').value.trim();
+async function guardarVista(){if(guardando||!exigeSuper())return;const p=proj(),u=$('m_unidad').value.trim();
  if(!u){alert('Escribe la unidad o el pasillo.');return $('m_unidad').focus()}
  if(!CAM.pend.length||!CAM.frz)return alert('Primero toca la imagen para poner al menos un punto.');
  guardando=true;try{const nombre=$('m_nombre').value.trim();try{localStorage.setItem(LSNOM,nombre)}catch(e){}
@@ -213,19 +219,20 @@ async function llenarRepFotos(){const d=$('repFotos');if(!d)return;const r=repBy
 
 /* ---- pantalla: VER (cámara en vivo + foto guía + puntos) o foto fija ---- */
 function vCap(p,cid,m){const c=capById(cid);if(!c){vista={pantalla:'marcas',lado:vista.lado};return vMarcas(p)}const cam=m!=='foto';
+ if(vista.nuevo&&!esSuper())vista.nuevo=0;
  const op=vista.op!=null?vista.op:45,on=vista.ghost!==false;
- return `<button class="sec sm" data-u="${esc(c.unidad)}" onclick="irMarcasU(this.dataset.u,vista.desde==='unidad'?'unidad':'marcas')">← ${esc(uLabel(c.unidad))}</button>${banEj(p)}
+ return `${vista.buscar?`<button class="sec sm" onclick="vista={pantalla:'marcas',lado:vista.lado};render()">← Marcas</button><div class="buscatit" id="buscarTit">🔎 Buscar marcas · ${esc(uLabel(c.unidad))}${c.area?' · '+esc(c.area):''}</div>`:`<button class="sec sm" data-u="${esc(c.unidad)}" onclick="irMarcasU(this.dataset.u,vista.desde==='unidad'?'unidad':'marcas')">← ${esc(uLabel(c.unidad))}</button>`}${banEj(p)}
  <div class="tabs"><button id="tabCam" class="${cam?'on':'off'}" onclick="vista.m='cam';render()">👁️ Ver con cámara</button><button id="tabFoto" class="${cam?'off':'on'}" onclick="vista.m='foto';render()">🖼️ Foto con puntos</button></div>
  ${cam?`<div class="mut">Mueve el teléfono hasta que la foto guía (transparente) coincida con la pared. Los puntos quedan donde va cada reparación.</div>`:''}
  <div class="stagewrap"><div class="stage${cam?' live':''}" id="stage">${cam?'<video id="vid" playsinline muted autoplay></video>':''}<img id="${cam?'ghost':'capImg'}" alt="foto guardada" class="${cam&&!on?'hidden':''}" style="${cam?'opacity:'+op/100:''}"><div class="dots" id="dots">${dotsHTML(c.puntos)}</div>${cam?'<div class="guiaov" id="guiaOv"></div><div class="cammsg" id="camMsg">Abriendo cámara…</div>':''}</div></div>
- ${cam?guiaCtlHTML(c):''}
+ ${cam?guiaBarHTML(c)+guiaCtlHTML(c):''}
  ${cam?`<div class="card" id="ghostCtl"><label style="color:var(--tx);margin:0"><input type="checkbox" id="ghostOn" style="width:auto" ${on?'checked':''} onchange="vista.ghost=this.checked;$('ghost').classList.toggle('hidden',!this.checked)"> Mostrar foto guía</label>
   <label for="ghostOp">Transparencia de la foto guía: <b id="opVal">${op}%</b></label><input type="range" id="ghostOp" min="0" max="100" step="5" value="${op}" oninput="vista.op=+this.value;$('ghost').style.opacity=this.value/100;$('opVal').textContent=this.value+'%'"></div>`
  :`<p><a class="btn sec" id="lnkCapFoto" style="display:inline-block;text-decoration:none;background:#333;color:#fff">⬇️ Guardar foto con puntos</a></p>`}
  ${vista.nuevo?`<div class="card" id="guardadoOk" style="border-color:var(--ok)"><b>✅ Vista guardada</b><div class="mut">Se creó el T&M en “⬆️ Para la oficina”.</div><p><button class="sm" id="btnIrTM" onclick="verTMCap('${esc(c.id)}')">🛠️ Ver y mandar el T&M</button></p></div>`:''}
  <div class="card" id="capCard"><div class="big">${esc(uLabel(c.unidad))}${c.area?' · '+esc(c.area):''}</div><div class="mut">${c.piso?'Piso '+esc(c.piso)+' · ':''}${esc(c.fecha)}${c.nombre?' · 📷 '+esc(c.nombre):''} · ${esc(c.id)}</div>${c.nota?`<div id="capNota">📝 ${esc(c.nota)}</div>`:''}<div class="mut" id="capOri">${c.ori?'🧭 Dirección guardada'+(c.ori.abs?' (con brújula)':' (sin brújula)'):'🧭 Sin dirección guardada: solo foto guía'}</div><div style="margin-top:6px">${chipsConteo(c.puntos)}</div></div>
  <h3>📍 Puntos (${c.puntos.length})</h3>${c.puntos.map(x=>{const t=ptTipo(x);return `<div class="pitem" data-cod="${esc(x.cod)}"><span class="sw" style="background:${esc(t.color)}"></span><b>${esc(x.cod)}</b> ${esc(t.nombre)}${cam?`<button class="sec sm" style="float:right;padding:3px 9px" onclick="guiaSel('${esc(x.cod)}');$('stage').scrollIntoView({block:'center'})">🧭 Guiar</button>`:''}</div>`}).join('')}
- <div class="row" style="margin-top:10px"><button class="sec" onclick="verTMCap('${esc(c.id)}')">🛠️ T&M</button><button class="sec" data-u="${esc(c.unidad)}" onclick="abrirMarcar(this.dataset.u)">📷 Marcar otra vista</button></div>`}
+ ${esSuper()?`<div class="row" style="margin-top:10px"><button class="sec" onclick="verTMCap('${esc(c.id)}')">🛠️ T&M</button><button class="sec" data-u="${esc(c.unidad)}" onclick="abrirMarcar(this.dataset.u)">📷 Marcar otra vista</button></div>`:rolAviso()}`}
 async function setupCap(){const c=capById(vista.cid);if(!c)return;const st=$('stage');CAM.aspect=c.w/c.h;fitStage(CAM.aspect);
  const im=$('ghost')||$('capImg');try{const u=await fotoURL(c.id);if(u&&im)im.src=u;else if(!u&&st)st.insertAdjacentHTML('beforeend','<div class="cammsg">La foto de esta vista ya no está en el teléfono.</div>')}catch(e){}
  if($('vid')){camStart();sensStart();sensEstado();guiaUpd()}
@@ -235,8 +242,8 @@ async function llenarThumbs(){for(const im of document.querySelectorAll('img[dat
 /* ---- enganche con render() ---- */
 function rutaMarcas(p){const s=vista.pantalla;
  if(s==='marcas')return vMarcas(p);if(s==='tiposRep')return vTiposRep();if(s==='marcasUnidad')return vMarcasUnidad(p,vista.unidad);
- if(s==='marcar')return vMarcar(p);if(s==='verCap')return vCap(p,vista.cid,vista.m);return null}
-function despuesRender(){const s=vista.pantalla;
+ if(s==='marcar')return vMarcar(p);if(s==='verCap')return vCap(p,vista.cid,vista.m);if(s==='rol')return vRol();return null}
+function despuesRender(){const s=vista.pantalla;if(typeof rolBadge==='function')rolBadge();
  if(modo==='campo'){if(s==='marcar')setupMarcar();if(s==='verCap')setupCap();
   if(s==='marcas'){const q=$('qm');if(q){q.value=vista.qm||'';q.oninput=()=>{vista.qm=q.value;$('mres').innerHTML=marcasRes(proj(),q.value)}}}
   if(s==='reporte')llenarRepFotos()}

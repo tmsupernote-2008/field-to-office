@@ -20,7 +20,7 @@ Guía de campo de drywall para supers y foremen. Lado oficina (con PIN) para car
 - **Tipos** editables (nombre, color, quién/qué es). De fábrica: Parche drywall, Electricista (alrededor de enchufes/luces), Plomero, Fire sprinkler, Esquina/bead, Otro.
 - **T&M automático** (sin precios) en el historial de “⬆️ Para la oficina”, con el mismo formato del reporte *Trabajo extra T&M* y los botones de compartir; se puede agrupar por vista, por punto o por unidad y día. Al pegarlo en “⬇️ Recibido del campo” salen todos los campos.
 - **Límite**: no es AR de verdad (una PWA no puede anclar puntos en la pared; WebXR no existe en Safari de iPhone). Se alinea a ojo con la foto guía.
-- Datos: lista de vistas en localStorage; fotos en IndexedDB (solo en ese teléfono). Cache del service worker: `fto-v7`.
+- Datos: lista de vistas en localStorage; fotos en IndexedDB (solo en ese teléfono). Cache del service worker: ver abajo (`fto-v8`).
 
 **🧭 Guiar a marca con flechas** (rama `flechas-guia`, código en `guia.js`): en “👁️ Ver con cámara”.
 - Al marcar, si el teléfono da los sensores de orientación (DeviceOrientationEvent; en iPhone hay que tocar “🧭 Activar sensores”), se guarda hacia dónde apuntaba el teléfono y el rumbo/inclinación de cada punto (campo de visión de la cámara aproximado: 64° del lado largo).
@@ -29,3 +29,14 @@ Guía de campo de drywall para supers y foremen. Lado oficina (con PIN) para car
 - **Límite**: guía aproximada, no AR de verdad; la brújula falla cerca de metal y aparatos eléctricos.
 
 **🎤 Dictar** (`voz.js`): botón 🎤 debajo de los campos de descripción/nota (Reportar problema, Trabajo extra T&M, Atraso, nota de 📸 Marcar reparaciones y Notas de la ficha en la oficina). Web Speech API (SpeechRecognition / webkitSpeechRecognition), idioma de la app (español → es-US por defecto o la región del teléfono), continuo con texto provisional, toca para empezar/parar, “escuchando…”, y el texto se inserta en el cursor sin borrar lo escrito. Si el navegador no lo tiene o niegan el micrófono, sale un aviso para usar el micrófono del teclado. El reconocimiento lo hace el navegador (en Chrome el audio puede ir a los servidores de Google); la app no manda nada a ningún servidor.
+
+**🔒 Roles y 🔎 Buscar marcas** (rama `roles-buscar`, código en `roles.js`; cache del service worker: `fto-v8`, ahora con `roles.js`):
+- **🔎 Buscar marcas**: botón grande justo debajo de “📷 Marcar nueva vista”. Un toque abre “👁️ Ver con cámara” (la vista más nueva) con la lista de **todas** las marcas del proyecto y una búsqueda (número P-003, tipo, unidad, área, piso).
+- **🧭 Guiar en la pantalla de la cámara** (Buscar marcas y Ver con cámara): debajo de la imagen en vivo hay **◀ 🧭 Guiar ▶** grandes. Guiar lleva a la marca escogida (o a la siguiente si no hay) y muestra flecha o anillo; ◀ ▶ pasan a la anterior/siguiente.
+- **Roles en este teléfono** (insignia arriba: 👁️ Solo ver / 🦺 Super/GC):
+  - **Super / GC**: marca, edita tipos, borra vistas y crea el T&M de las marcas.
+  - **Solo ver** (de fábrica, la primera vez): ve, busca y se guía con flechas. Los botones de marcar salen desactivados con “🔒 Solo Super o GC pueden marcar”; editar tipos, 🗑️ borrar, T&M de las marcas y “Marcar otra vista” no salen.
+  - **🔒 Entrar como Super/GC** pide un PIN de 4 a 6 números. La primera vez el Super lo crea (con confirmación). Luego: **🔑 Cambiar PIN** (pide el actual) y **👁️ Salir (solo ver)**. Después de 5 errores hay que esperar 30 s entre intentos (también si recargan).
+  - Del PIN solo se guarda en localStorage un hash **PBKDF2-SHA-256** (150 000 vueltas, sal aleatoria de 16 bytes), nunca el PIN. Es distinto del PIN de 🏢 Oficina.
+- **Límite honesto**: el PIN es un **candado de este teléfono** para que nadie marque, edite o borre por accidente; **no es seguridad completa** (quien tenga el teléfono puede borrar los datos del sitio o usar herramientas del navegador, y quien cree el PIN primero queda como Super). Permisos de verdad por persona, como los issues de Autodesk, necesitan un servidor con cuentas: **no está hecho**. Si olvidan el PIN no hay forma de recuperarlo en la app (solo borrando los datos del sitio, lo que borra también las marcas del teléfono).
+- Las marcas guardadas antes siguen funcionando igual (ver, buscar, guiar). Los formularios de “⬆️ Para la oficina” (Reportar problema, Trabajo extra T&M, Atraso) no cambian. Sin red: todo queda en el teléfono.
