@@ -9,3 +9,7 @@ Guía de campo de drywall para supers y foremen. Lado oficina (con PIN) para car
 - Campo: **⬇️ De la oficina** (carpetas de especificaciones, búsqueda por unidad/tipo de pared, cómo leer el código) y **⬆️ Para la oficina** (formularios *Reportar problema / pregunta*, *Trabajo extra T&M* y *Atraso*). Cada formulario crea un mensaje de texto (+ foto opcional) que se comparte por Web Share, WhatsApp, SMS, correo o copiar. Historial guardado solo en el teléfono.
 - Oficina (PIN): **⬆️ Subir al campo** (la edición de siempre) y **⬇️ Recibido del campo** (pegar el texto recibido para llevar una lista con Pendiente / Atendido).
 - No hay servidor ni chat: todo viaja por los mensajes que el usuario comparte.
+
+**🧩 Módulos** (rama `modulo-firmax`): apps anexas a Field to Office, al final de la pantalla de inicio del campo y de la oficina. Es un registro (`MODULOS` en `index.html`: `id`, `nombre`, `icono`, `url`, `descripcion`, y `oficina` opcional para una nota del lado oficina); para agregar otro módulo basta con añadir un objeto.
+- **✍️ Hoja de firmas (Firmax)**: abre https://tmsupernote-2008.github.io/hoja-firmas/ en una pestaña nueva (es otra app/origen: no comparte datos). Los enlaces de Firmax para superintendentes y subcontratistas se crean dentro de Firmax.
+- El service worker (cache `fto-v5`) no guarda ni intercepta direcciones de otros sitios.

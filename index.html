@@ -41,6 +41,8 @@ mark{background:var(--acc);color:#000;border-radius:3px;padding:0 1px}.nf{color:
 .dirnota{margin:0 2px 8px}.tag.okt{background:#123d26;color:#a6f0c6}.tag.pen{background:#3d3100;color:#ffe48a}
 .share{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.share>*{text-align:center;text-decoration:none}
 .atendido{opacity:.55}
+.modulos{margin-top:22px;border-top:1px solid var(--line);padding-top:6px}.modcard{display:block;text-decoration:none;color:var(--tx);border-left:5px solid var(--acc)}.modcard .ext{float:right;color:var(--acc);font-size:14px;font-weight:700}
+.modnota{background:#10233a;border-left:5px solid #4da3ff;padding:10px;border-radius:8px;margin:8px 0}
 .hidden{display:none!important}#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ok);color:#000;font-weight:700;padding:10px 16px;border-radius:10px;display:none;z-index:9}
 </style>
 </head>
@@ -112,7 +114,8 @@ function vCampo(p){
  return `${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – no usar en obra<br><span style="font-weight:600">Datos de documentos reales sin nombres. Lo que dice “Pendiente” falta en los documentos.</span></div>':''}
  ${data.length>1?`<select onchange="localStorage.setItem(LSPROJ,this.value);vista={pantalla:'inicio'};render()">${data.map(x=>`<option value="${x.id}" ${x.id===p.id?'selected':''}>${esc(x.nombre)}</option>`).join('')}</select>`:''}
  <div class="tabs dir"><button id="tabDe" class="${lado==='de'?'on':'off'}" onclick="vista={pantalla:'inicio',lado:'de'};render()">⬇️ De la oficina</button><button id="tabPara" class="${lado==='para'?'on':'off'}" onclick="vista={pantalla:'inicio',lado:'para'};render()">⬆️ Para la oficina</button></div>
- ${lado==='para'?vPara(p):vDe(p)}`;
+ ${lado==='para'?vPara(p):vDe(p)}
+ ${vModulos('campo')}`;
 }
 /* Oficina → Campo: lo que la oficina prepara (carpetas, fichas, unidades) */
 function vDe(p){
@@ -271,6 +274,19 @@ async function compartirRep(id){const r=repById(id);if(!r)return;const txt=msgTe
 function borrarRep(id){if(!confirm('¿Borrar este reporte del historial de este teléfono?'))return;lsSet(LSENV,lsGet(LSENV).filter(x=>x.id!==id));vista={pantalla:'inicio',lado:'para'};render()}
 function borrarHist(){if(!confirm('¿Borrar todo el historial de este teléfono?'))return;localStorage.removeItem(LSENV);render()}
 
+/* ---------- 🧩 MÓDULOS: apps anexas (registro). Para agregar otro módulo, añade un objeto a MODULOS.
+   Cada módulo es otra app (otro origen): se abre en una pestaña nueva y no comparte datos con Field to Office. ---------- */
+const MODULOS=[
+ {id:'firmax',nombre:'Hoja de firmas (Firmax)',icono:'✍️',url:'https://tmsupernote-2008.github.io/hoja-firmas/',
+  descripcion:'Hoja de firmas diaria (pre-task / sign-in) para que la cuadrilla firme desde el teléfono.',
+  oficina:'Los enlaces de Firmax para superintendentes y subcontratistas se crean dentro de Firmax, no aquí.'}
+];
+function modCard(m,lado){const ico=esc(m.icono),nom=esc(m.nombre),url=esc(m.url);
+ if(lado==='oficina')return `<div class="card modcard" id="mod_${esc(m.id)}_oficina" data-mod="${esc(m.id)}"><div class="big">${ico} ${nom}</div><div class="mut">${esc(m.descripcion)}</div>${m.oficina?`<div class="modnota">ℹ️ ${esc(m.oficina)}</div>`:''}<p><a class="btn modlink" style="display:inline-block;text-decoration:none" href="${url}" target="_blank" rel="noopener">${ico} Abrir ${nom} ↗</a></p></div>`;
+ return `<a class="card list-item modcard modlink" id="mod_${esc(m.id)}" data-mod="${esc(m.id)}" href="${url}" target="_blank" rel="noopener"><span class="ext">Abrir ↗</span><div class="big">${ico} ${nom}</div><div class="mut">${esc(m.descripcion)}</div></a>`}
+function vModulos(lado){if(!MODULOS.length)return '';
+ return `<section class="modulos" id="modulos_${lado}"><h3>🧩 Módulos</h3><div class="mut dirnota">Apps anexas a Field to Office. Se abren en una pestaña nueva; para volver, regresa a esta pestaña.</div>${MODULOS.map(m=>modCard(m,lado)).join('')}</section>`}
+
 /* ---------- OFICINA: Recibido del campo (pegar el texto que llegó por WhatsApp / SMS / correo) ---------- */
 function claves(){const k={tipo:'Tipo',proyecto:'Proyecto',fecha:'Fecha',foto:'Foto',reporta:'Reporta',id:'ID'},m={};Object.values(k).forEach(v=>m[nrm(v)]=v);
  Object.values(RT).forEach(t=>t.campos.forEach(c=>m[nrm(c.m)]=c.m));return m}
@@ -317,7 +333,8 @@ function vOficina(p){
  const lado=vista.lado==='rec'?'rec':'subir', nPend=lsGet(LSREC).filter(r=>!r.atendido).length;
  return `${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – no usar en obra · crea un proyecto nuevo con tus datos</div>':''}
  <div class="tabs dir"><button id="tabSubir" class="${lado==='subir'?'on':'off'}" onclick="vista={pantalla:'inicio',lado:'subir'};render()">⬆️ Subir al campo</button><button id="tabRec" class="${lado==='rec'?'on':'off'}" onclick="vista={pantalla:'inicio',lado:'rec'};render()">⬇️ Recibido del campo${nPend?' ('+nPend+')':''}</button></div>
- ${lado==='rec'?vRecibido():vSubir(p)}`;
+ ${lado==='rec'?vRecibido():vSubir(p)}
+ ${vModulos('oficina')}`;
 }
 /* Oficina → Campo: edición de lo que ven supers y foremen */
 function vSubir(p){
