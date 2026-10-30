@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Field to Office</title>
+<meta name="theme-color" content="#111111">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+:root{--bg:#111;--card:#1d1d1d;--line:#333;--tx:#f2f2f2;--mut:#aaa;--acc:#ff8a00;--ok:#2fbf71;--warn:#ffcc00;--red:#ff4d4d}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx);font-size:17px}
+header{position:sticky;top:0;background:#000;padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:2px solid var(--acc);z-index:5}
+header h1{font-size:19px;margin:0;flex:1}header small{color:var(--mut);display:block;font-weight:400;font-size:12px}
+main{padding:14px;max-width:760px;margin:auto;padding-bottom:80px}
+button,.btn{background:var(--acc);color:#000;border:0;border-radius:10px;padding:12px 14px;font-size:16px;font-weight:700;cursor:pointer}
+button.sec{background:#333;color:var(--tx)}button.red{background:var(--red);color:#fff}button.sm{padding:7px 10px;font-size:14px}
+input,select,textarea{width:100%;background:#000;color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:16px}
+textarea{min-height:70px}label{display:block;margin:10px 0 4px;color:var(--mut);font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
+.card h3{margin:0 0 6px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.row>*{flex:1}
+.tag{display:inline-block;background:#333;border-radius:20px;padding:3px 10px;margin:2px;font-size:13px}
+.tag.fw{background:#5a1a1a;color:#ffb3b3}.tag.sh{background:#1a3a5a;color:#b3d9ff}.tag.rc{background:#3a3a1a;color:#ffe9a3}
+.ej{background:var(--warn);color:#000;font-weight:800;text-align:center;padding:6px;border-radius:8px;margin:8px 0;font-size:14px}
+.big{font-size:22px;font-weight:800}.mut{color:var(--mut);font-size:14px}
+.spec{display:grid;grid-template-columns:42% 58%;gap:0;border-top:1px solid var(--line);margin-top:8px}
+.spec div{padding:9px 6px;border-bottom:1px solid var(--line)}.spec div:nth-child(odd){color:var(--mut);font-size:14px}
+.spec div:nth-child(even){font-weight:700}
+.alerta{background:#3d0d0d;border-left:5px solid var(--red);padding:10px;border-radius:8px;margin:8px 0;font-weight:700}
+.tabs{display:flex;gap:6px;margin-bottom:8px}.tabs button{flex:1}
+.list-item{cursor:pointer}.list-item:active{background:#262626}
+img.adj{max-width:100%;border-radius:10px;margin-top:8px;border:1px solid var(--line)}
+.hidden{display:none!important}#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ok);color:#000;font-weight:700;padding:10px 16px;border-radius:10px;display:none;z-index:9}
+</style>
+</head>
+<body>
+<header>
+  <div style="font-size:26px">📐</div>
+  <h1 id="htitle">Field to Office<small id="hsub">Guía de campo de drywall</small></h1>
+  <button class="sec sm" id="btnModo">🏢 Oficina</button>
+</header>
+<main id="app"></main>
+<div id="toast"></div>
+<script>
+/* ===== Field to Office - prototipo =====
+   Datos guardados en el teléfono (localStorage). El proyecto de ejemplo es FICTICIO. */
+const LS='fto_data_v1', LSPIN='fto_pin_hash', LSPROJ='fto_proj';
+const TIPOS={pared:'Pared / Assembly',firewall:'Fire wall',shaft:'Shaft',rc1:'RC1 channel'};
+function ejemplo(){return {id:'ejemplo',nombre:'PROYECTO DE EJEMPLO',ejemplo:true,direccion:'(dirección de ejemplo)',
+ fichas:[
+ {id:'A1',tipo:'pared',nombre:'Pared tipo A1 (EJEMPLO) – entre cuartos',capas:'1 capa de 5/8" Type X cada lado',dobleCapa:'No',tornillo:'#6 x 1-1/4" punta fina (ejemplo)',patron:'12" en el campo, 8" en las orillas (ejemplo)',metal:'Stud 3-5/8" cal. 25 @ 16" o.c. (ejemplo)',aislamiento:'Sí, insulation acústico (ejemplo)',notas:'Dato de EJEMPLO. Reemplazar con el plano real.',adj:[]},
+ {id:'B2',tipo:'firewall',nombre:'Fire wall B2 (EJEMPLO) – entre unidades, 1 hora',capas:'2 capas de 5/8" Type X del lado del pasillo, 1 capa del lado de la unidad (ejemplo)',dobleCapa:'SÍ – lado pasillo, desde el piso hasta el deck (ejemplo)',tornillo:'1ra capa #6 x 1-1/4", 2da capa #6 x 1-5/8" (ejemplo)',patron:'1ra capa 24" o.c., 2da capa 12" o.c., juntas alternadas (ejemplo)',metal:'Stud 3-5/8" cal. 20 @ 16" o.c. (ejemplo)',aislamiento:'Sí (ejemplo)',notas:'Fire caulking en todas las penetraciones y arriba en el deck. Fire tape en juntas. Dato de EJEMPLO.',alerta:'Fire wall: no dejar huecos. Doble capa donde dice el plano.',adj:[]},
+ {id:'SH1',tipo:'shaft',nombre:'Shaft SH1 (EJEMPLO) – ducto de baño',capas:'Shaftliner 1" + 1 capa 5/8" Type X (ejemplo)',dobleCapa:'Ver plano (ejemplo)',tornillo:'#6 x 1-5/8" (ejemplo)',patron:'12" o.c. (ejemplo)',metal:'C-H stud 2-1/2" y J-track (ejemplo)',aislamiento:'Según plano (ejemplo)',notas:'Se instala desde un solo lado. Dato de EJEMPLO.',adj:[]},
+ {id:'RC1',tipo:'rc1',nombre:'RC1 channel (EJEMPLO) – techo entre pisos',capas:'1 capa 5/8" Type X sobre RC1 (ejemplo)',dobleCapa:'No (ejemplo)',tornillo:'#6 x 1" tipo S, solo al channel, nunca al joist (ejemplo)',patron:'RC1 @ 16" o.c., tornillos 12" o.c. (ejemplo)',metal:'Resilient channel RC1 (ejemplo)',aislamiento:'Sí (ejemplo)',notas:'No atornillar el drywall a la madera/joist: pierde el aislamiento de sonido. Dato de EJEMPLO.',alerta:'Tornillo solo al channel.',adj:[]}
+ ],
+ unidades:[
+ {unidad:'201',piso:'2',fichas:['A1','B2','SH1','RC1']},
+ {unidad:'202',piso:'2',fichas:['A1','B2','RC1']},
+ {unidad:'301',piso:'3',fichas:['A1','B2','SH1','RC1']},
+ {unidad:'Pasillo 2do FL',piso:'2',fichas:['B2']}
+ ]};}
+let data=load(), modo='campo', vista={pantalla:'inicio'}, admin=false;
+function load(){try{const d=JSON.parse(localStorage.getItem(LS));if(d&&d.length)return d}catch(e){}return [ejemplo()]}
+function save(){try{localStorage.setItem(LS,JSON.stringify(data))}catch(e){alert('No hay espacio en el teléfono para guardar. Usa fotos más pequeñas.')}}
+function proj(){const id=localStorage.getItem(LSPROJ);return data.find(p=>p.id===id)||data[0]}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
+async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('fto:'+s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+function tagTipo(t){const c={firewall:'fw',shaft:'sh',rc1:'rc'}[t]||'';return `<span class="tag ${c}">${esc(TIPOS[t]||t)}</span>`}
+const $=id=>document.getElementById(id);
+
+function render(){
+ const p=proj(); $('hsub').textContent=(p?p.nombre:'')+(modo==='oficina'?' · Oficina':' · Campo');
+ $('btnModo').textContent=modo==='oficina'?'👷 Campo':'🏢 Oficina';
+ const a=$('app'); a.innerHTML=modo==='oficina'?vOficina(p):vCampo(p); window.scrollTo(0,0);
+ const q=$('q'); if(q){q.value=vista.q||'';q.oninput=()=>{vista.q=q.value;$('res').innerHTML=resultados(p,q.value)};}
+}
+/* ---------- CAMPO ---------- */
+function vCampo(p){
+ if(!p)return '<div class="card">No hay proyectos. Pide el enlace a la oficina.</div>';
+ if(vista.pantalla==='ficha')return vFicha(p,vista.id);
+ if(vista.pantalla==='unidad')return vUnidad(p,vista.id);
+ return `${p.ejemplo?'<div class="ej">⚠️ PROYECTO DE EJEMPLO – datos ficticios, NO usar en obra</div>':''}
+ ${data.length>1?`<select onchange="localStorage.setItem(LSPROJ,this.value);vista={pantalla:'inicio'};render()">${data.map(x=>`<option value="${x.id}" ${x.id===p.id?'selected':''}>${esc(x.nombre)}</option>`).join('')}</select>`:''}
+ <label>🔎 Busca por unidad, piso o tipo de pared</label>
+ <input id="q" placeholder="Ej: 201, B2, fire, shaft, RC1" autocomplete="off">
+ <div id="res">${resultados(p,vista.q||'')}</div>`;
+}
+function resultados(p,q){
+ q=(q||'').toLowerCase().trim();
+ const us=p.unidades.filter(u=>!q||u.unidad.toLowerCase().includes(q)||('piso '+u.piso).includes(q)||(u.piso+'fl').includes(q.replace(/\s/g,'')));
+ const fs=p.fichas.filter(f=>!q||[f.id,f.nombre,TIPOS[f.tipo],f.tipo].join(' ').toLowerCase().includes(q));
+ let h='';
+ if(us.length)h+=`<h3>🏠 Unidades</h3>`+us.map(u=>`<div class="card list-item" onclick="vista={pantalla:'unidad',id:'${esc(u.unidad)}',q:vista.q};render()"><div class="big">${esc(u.unidad)}</div><div class="mut">Piso ${esc(u.piso)} · ${u.fichas.length} fichas</div></div>`).join('');
+ if(fs.length)h+=`<h3>🧱 Tipos de pared</h3>`+fs.map(f=>`<div class="card list-item" onclick="vista={pantalla:'ficha',id:'${esc(f.id)}',q:vista.q};render()"><div class="big">${esc(f.id)}</div>${tagTipo(f.tipo)}<div>${esc(f.nombre)}</div></div>`).join('');
+ return h||'<div class="card mut">No se encontró nada. Prueba con otro número o tipo.</div>';
+}
+function vUnidad(p,id){const u=p.unidades.find(x=>x.unidad===id);if(!u)return '';
+ return `<button class="sec sm" onclick="vista={pantalla:'inicio',q:vista.q};render()">← Volver</button>
+ ${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – NO usar en obra</div>':''}
+ <div class="card"><div class="big">Unidad ${esc(u.unidad)}</div><div class="mut">Piso ${esc(u.piso)}</div></div>
+ <h3>Paredes de esta unidad</h3>`+u.fichas.map(fid=>{const f=p.fichas.find(x=>x.id===fid);return f?`<div class="card list-item" onclick="vista={pantalla:'ficha',id:'${esc(f.id)}',desde:'${esc(u.unidad)}',q:vista.q};render()"><div class="big">${esc(f.id)}</div>${tagTipo(f.tipo)}<div>${esc(f.nombre)}</div>${f.dobleCapa&&/^s[ií]/i.test(f.dobleCapa)?'<div class="alerta">⚠️ Lleva DOBLE CAPA</div>':''}</div>`:''}).join('');
+}
+function vFicha(p,id){const f=p.fichas.find(x=>x.id===id);if(!f)return '';
+ const back=vista.desde?`vista={pantalla:'unidad',id:'${esc(vista.desde)}',q:vista.q}`:`vista={pantalla:'inicio',q:vista.q}`;
+ const filas=[['Capas de drywall',f.capas],['¿Doble capa? ¿Dónde?',f.dobleCapa],['Tipo de tornillo',f.tornillo],['Patrón de tornillos',f.patron],['Metal / studs',f.metal],['Aislamiento',f.aislamiento]];
+ const enU=p.unidades.filter(u=>u.fichas.includes(f.id)).map(u=>`<span class="tag">${esc(u.unidad)}</span>`).join('');
+ return `<button class="sec sm" onclick="${back};render()">← Volver</button>
+ ${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – datos ficticios, NO usar en obra</div>':''}
+ <div class="card"><div class="big">${esc(f.id)}</div>${tagTipo(f.tipo)}<h3 style="margin-top:6px">${esc(f.nombre)}</h3>
+ ${f.alerta?`<div class="alerta">⚠️ ${esc(f.alerta)}</div>`:''}
+ <div class="spec">${filas.filter(r=>r[1]).map(r=>`<div>${r[0]}</div><div>${esc(r[1])}</div>`).join('')}</div>
+ ${f.notas?`<p>📝 ${esc(f.notas)}</p>`:''}
+ ${enU?`<div class="mut">Se usa en:</div>${enU}`:''}
+ ${(f.adj||[]).map(x=>x.tipo==='pdf'?`<p><a class="btn" style="display:inline-block;text-decoration:none" href="${x.data}" download="${esc(x.nombre)}" target="_blank">📄 Abrir ${esc(x.nombre)}</a></p>`:`<img class="adj" src="${x.data}" alt="${esc(x.nombre)}">`).join('')}
+ </div>`;
+}
+/* ---------- OFICINA ---------- */
+function vOficina(p){
+ if(!admin){const tiene=!!localStorage.getItem(LSPIN);
+  return `<div class="card"><h3>🏢 Oficina</h3><p class="mut">${tiene?'Escribe tu PIN de oficina.':'Primera vez: crea tu PIN de oficina (mínimo 4 números). Solo queda guardado en este teléfono.'}</p>
+  <input id="pin" type="password" inputmode="numeric" placeholder="PIN">${tiene?'':'<input id="pin2" type="password" inputmode="numeric" placeholder="Repite el PIN" style="margin-top:8px">'}
+  <p><button onclick="entrar(${tiene})">Entrar</button></p></div>`;}
+ if(vista.pantalla==='editFicha')return vEditFicha(p,vista.id);
+ if(vista.pantalla==='editUnidad')return vEditUnidad(p,vista.id);
+ return `${p.ejemplo?'<div class="ej">⚠️ PROYECTO DE EJEMPLO – reemplázalo con datos reales</div>':''}
+ <div class="card"><h3>📁 Proyecto</h3>
+ <select onchange="localStorage.setItem(LSPROJ,this.value);render()">${data.map(x=>`<option value="${x.id}" ${x.id===p.id?'selected':''}>${esc(x.nombre)}</option>`).join('')}</select>
+ <label>Nombre</label><input value="${esc(p.nombre)}" onchange="proj().nombre=this.value;save();render()">
+ <div class="row" style="margin-top:10px"><button class="sec sm" onclick="nuevoProyecto()">+ Proyecto nuevo</button><button class="red sm" onclick="borrarProyecto()">Borrar proyecto</button></div></div>
+ <div class="card"><h3>🔗 Compartir con supers y foremen</h3><p class="mut">Crea un enlace con las fichas y unidades de este proyecto. Al abrirlo, el proyecto se guarda en su teléfono. (En este prototipo, las fotos y PDFs no viajan en el enlace.)</p>
+ <button onclick="compartir()">📨 Crear enlace</button><div id="enl"></div></div>
+ <h3>🧱 Fichas por tipo de pared</h3>
+ ${p.fichas.map(f=>`<div class="card list-item" onclick="vista={pantalla:'editFicha',id:'${esc(f.id)}'};render()"><b>${esc(f.id)}</b> ${tagTipo(f.tipo)}<div class="mut">${esc(f.nombre)} · ${(f.adj||[]).length} archivos</div></div>`).join('')}
+ <button class="sec" onclick="vista={pantalla:'editFicha',id:null};render()">+ Nueva ficha</button>
+ <h3>🏠 Unidades</h3>
+ ${p.unidades.map(u=>`<div class="card list-item" onclick="vista={pantalla:'editUnidad',id:'${esc(u.unidad)}'};render()"><b>${esc(u.unidad)}</b> <span class="mut">Piso ${esc(u.piso)}</span><div>${u.fichas.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div></div>`).join('')}
+ <button class="sec" onclick="vista={pantalla:'editUnidad',id:null};render()">+ Nueva unidad</button>
+ <div class="card"><p class="mut">Respaldo</p><div class="row"><button class="sec sm" onclick="exportar()">⬇️ Exportar</button><label class="btn sec sm" style="margin:0;text-align:center;background:#333;color:#fff">⬆️ Importar<input type="file" accept=".json" class="hidden" onchange="importar(this)"></label></div>
+ <p><button class="sec sm" onclick="admin=false;render()">🔒 Salir de oficina</button></p></div>`;
+}
+async function entrar(tiene){const v=$('pin').value.trim();if(!/^\d{4,}$/.test(v))return alert('El PIN debe tener al menos 4 números.');
+ if(tiene){if(await sha(v)!==localStorage.getItem(LSPIN))return alert('PIN incorrecto.');}
+ else{if(v!==$('pin2').value.trim())return alert('Los PIN no coinciden.');localStorage.setItem(LSPIN,await sha(v));toast('PIN creado')}
+ admin=true;vista={pantalla:'inicio'};render()}
+const CAMPOS=[['id','Código (ej: A1, B2, SH1)'],['nombre','Nombre / descripción corta'],['capas','Capas de drywall'],['dobleCapa','¿Doble capa? ¿Dónde?'],['tornillo','Tipo de tornillo'],['patron','Patrón de tornillos'],['metal','Metal / studs'],['aislamiento','Aislamiento'],['alerta','Alerta importante (sale en rojo)'],['notas','Notas cortas']];
+function vEditFicha(p,id){const f=p.fichas.find(x=>x.id===id)||{tipo:'pared',adj:[]};
+ return `<button class="sec sm" onclick="vista={pantalla:'inicio'};render()">← Volver</button>
+ <div class="card"><h3>${id?'Editar ficha '+esc(id):'Nueva ficha'}</h3>
+ <label>Tipo</label><select id="f_tipo">${Object.entries(TIPOS).map(([k,v])=>`<option value="${k}" ${f.tipo===k?'selected':''}>${v}</option>`).join('')}</select>
+ ${CAMPOS.map(([k,l])=>`<label>${l}</label>${k==='notas'?`<textarea id="f_${k}">${esc(f[k])}</textarea>`:`<input id="f_${k}" value="${esc(f[k])}">`}`).join('')}
+ <label>Fotos y PDFs</label><div id="adjs">${(f.adj||[]).map((x,i)=>`<div class="row"><span>${x.tipo==='pdf'?'📄':'🖼️'} ${esc(x.nombre)}</span><button class="red sm" style="flex:0" onclick="quitarAdj(${i})">✕</button></div>`).join('')||'<span class="mut">Sin archivos</span>'}</div>
+ <input type="file" accept="image/*,application/pdf" multiple onchange="agregarAdj(this)" style="margin-top:8px">
+ <div class="row" style="margin-top:14px"><button onclick="guardarFicha('${esc(id||'')}')">💾 Guardar</button>${id?`<button class="red" onclick="borrarFicha('${esc(id)}')">Borrar</button>`:''}</div></div>`;}
+let adjTemp=null;
+function fichaActual(){const p=proj();return p.fichas.find(x=>x.id===vista.id)}
+function leerForm(){const o={tipo:$('f_tipo').value};CAMPOS.forEach(([k])=>o[k]=$('f_'+k).value.trim());return o}
+function guardarFicha(id){const p=proj(),o=leerForm();if(!o.id)return alert('Pon un código.');
+ if(o.id!==id&&p.fichas.some(x=>x.id===o.id))return alert('Ese código ya existe.');
+ const f=p.fichas.find(x=>x.id===id);if(f){Object.assign(f,o);if(id!==o.id)p.unidades.forEach(u=>u.fichas=u.fichas.map(x=>x===id?o.id:x))}else p.fichas.push({...o,adj:adjTemp||[]});
+ adjTemp=null;save();toast('Ficha guardada');vista={pantalla:'inicio'};render()}
+function borrarFicha(id){if(!confirm('¿Borrar la ficha '+id+'?'))return;const p=proj();p.fichas=p.fichas.filter(x=>x.id!==id);p.unidades.forEach(u=>u.fichas=u.fichas.filter(x=>x!==id));save();vista={pantalla:'inicio'};render()}
+function achicar(file){return new Promise(r=>{const fr=new FileReader();fr.onload=()=>{if(file.type==='application/pdf')return r({tipo:'pdf',nombre:file.name,data:fr.result});
+ const im=new Image();im.onload=()=>{const m=1400,s=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);r({tipo:'img',nombre:file.name,data:c.toDataURL('image/jpeg',.75)})};im.src=fr.result};fr.readAsDataURL(file)})}
+async function agregarAdj(inp){const f=fichaActual();const arr=f?f.adj=(f.adj||[]):(adjTemp=adjTemp||[]);for(const file of inp.files)arr.push(await achicar(file));if(f)save();
+ const keep=f?null:leerForm();render();if(keep)CAMPOS.forEach(([k])=>$('f_'+k).value=keep[k]);toast('Archivo agregado')}
+function quitarAdj(i){const f=fichaActual();if(f){f.adj.splice(i,1);save()}else adjTemp&&adjTemp.splice(i,1);render()}
+function vEditUnidad(p,id){const u=p.unidades.find(x=>x.unidad===id)||{unidad:'',piso:'',fichas:[]};
+ return `<button class="sec sm" onclick="vista={pantalla:'inicio'};render()">← Volver</button>
+ <div class="card"><h3>${id?'Editar unidad':'Nueva unidad'}</h3>
+ <label>Unidad (número o nombre)</label><input id="u_n" value="${esc(u.unidad)}"><label>Piso</label><input id="u_p" value="${esc(u.piso)}" inputmode="numeric">
+ <label>Paredes / fichas que lleva</label>${p.fichas.map(f=>`<label style="color:var(--tx)"><input type="checkbox" style="width:auto" class="u_f" value="${esc(f.id)}" ${u.fichas.includes(f.id)?'checked':''}> ${esc(f.id)} – ${esc(f.nombre)}</label>`).join('')}
+ <div class="row" style="margin-top:14px"><button onclick="guardarUnidad('${esc(id||'')}')">💾 Guardar</button>${id?`<button class="red" onclick="borrarUnidad('${esc(id)}')">Borrar</button>`:''}</div></div>`;}
+function guardarUnidad(id){const p=proj(),n=$('u_n').value.trim();if(!n)return alert('Pon el número de unidad.');
+ if(n!==id&&p.unidades.some(x=>x.unidad===n))return alert('Esa unidad ya existe.');
+ const o={unidad:n,piso:$('u_p').value.trim(),fichas:[...document.querySelectorAll('.u_f:checked')].map(x=>x.value)};
+ const u=p.unidades.find(x=>x.unidad===id);if(u)Object.assign(u,o);else p.unidades.push(o);save();toast('Unidad guardada');vista={pantalla:'inicio'};render()}
+function borrarUnidad(id){if(!confirm('¿Borrar la unidad '+id+'?'))return;const p=proj();p.unidades=p.unidades.filter(x=>x.unidad!==id);save();vista={pantalla:'inicio'};render()}
+function nuevoProyecto(){const n=prompt('Nombre del proyecto nuevo:');if(!n)return;const id='p'+Date.now().toString(36);data.push({id,nombre:n,fichas:[],unidades:[]});localStorage.setItem(LSPROJ,id);save();render()}
+function borrarProyecto(){const p=proj();if(!confirm('¿Borrar el proyecto "'+p.nombre+'" de este teléfono?'))return;data=data.filter(x=>x!==p);if(!data.length)data=[ejemplo()];localStorage.removeItem(LSPROJ);save();render()}
+/* enlace: proyecto sin archivos, comprimido en el #hash */
+async function comprimir(s){const cs=new Blob([s]).stream().pipeThrough(new CompressionStream('deflate-raw'));const b=new Uint8Array(await new Response(cs).arrayBuffer());let t='';b.forEach(x=>t+=String.fromCharCode(x));return btoa(t).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+async function descomprimir(s){const t=atob(s.replace(/-/g,'+').replace(/_/g,'/'));const b=Uint8Array.from(t,c=>c.charCodeAt(0));const ds=new Blob([b]).stream().pipeThrough(new DecompressionStream('deflate-raw'));return await new Response(ds).text()}
+async function compartir(){const p=proj();const c=JSON.parse(JSON.stringify(p));c.fichas.forEach(f=>f.adj=[]);
+ const url=location.origin+location.pathname+'#p='+await comprimir(JSON.stringify(c));
+ const msg='Guía de campo – '+p.nombre+': '+url;
+ $('enl').innerHTML=`<textarea readonly style="margin-top:8px">${esc(url)}</textarea><div class="row" style="margin-top:8px"><button class="sm" onclick="navigator.clipboard.writeText(${esc(JSON.stringify(url))}).then(()=>toast('Copiado'))">📋 Copiar</button><a class="btn sm" style="text-align:center;text-decoration:none" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank">WhatsApp</a><a class="btn sm" style="text-align:center;text-decoration:none" href="sms:?&body=${encodeURIComponent(msg)}">SMS</a></div>`;}
+async function leerEnlace(){const m=location.hash.match(/^#p=(.+)$/);if(!m)return;
+ try{const p=JSON.parse(await descomprimir(m[1]));if(!p||!p.id||!Array.isArray(p.fichas))throw 0;
+  const i=data.findIndex(x=>x.id===p.id);if(i>=0){p.fichas.forEach(f=>{const old=data[i].fichas.find(o=>o.id===f.id);if(old)f.adj=old.adj||[]});data[i]=p}else data.push(p);
+  localStorage.setItem(LSPROJ,p.id);save();toast('Proyecto recibido: '+p.nombre)}catch(e){alert('El enlace no es válido o está incompleto.')}
+ history.replaceState(null,'',location.pathname)}
+function exportar(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));a.download='field-to-office-respaldo.json';a.click()}
+function importar(inp){const fr=new FileReader();fr.onload=()=>{try{const d=JSON.parse(fr.result);if(!Array.isArray(d))throw 0;data=d;save();toast('Importado');render()}catch(e){alert('Archivo no válido')}};fr.readAsText(inp.files[0])}
+$('btnModo').onclick=()=>{modo=modo==='oficina'?'campo':'oficina';vista={pantalla:'inicio'};render()};
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
+leerEnlace().then(render);
+</script>
+</body>
+</html>
