@@ -17,7 +17,7 @@
   function set(m){if(ORD.indexOf(m)<0)m='auto';try{if(m==='auto')localStorage.removeItem(K);else localStorage.setItem(K,m);}catch(e){}cur=m;apply();}
   var cur=mode();
   var _mode=mode;mode=function(){var v=_mode();return v==='auto'&&cur!=='auto'?cur:v;}; // si localStorage no funciona (file://), recuerda en memoria
-  function upd(b){var m=mode(),t=lbl('title')+': '+lbl(m);b.querySelector('.ic').textContent=IC[m];b.setAttribute('aria-label',t);b.title=t;b.setAttribute('data-mode',m);}
+  function upd(b){b.setAttribute('data-noi18n','');var m=mode(),t=lbl('title')+': '+lbl(m);b.querySelector('.ic').textContent=IC[m];b.setAttribute('aria-label',t);b.title=t;b.setAttribute('data-mode',m);}
   function css(){if(document.getElementById('temaCss'))return;var s=document.createElement('style');s.id='temaCss';s.textContent=
     '.temaBtn{flex:none;font:inherit;font-size:20px;line-height:1;width:46px;height:42px;min-height:42px;border-radius:12px;cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center;gap:0;margin:0}'+
     '.temaPop{position:fixed;inset:0;z-index:100001;display:none;background:rgba(10,14,20,.38)}.temaPop.open{display:block}'+
@@ -29,7 +29,7 @@
     'html[data-theme=dark] .temaPop .in{background:#171d26;color:#f1f5f9}html[data-theme=dark] .temaPop .in button{background:#1f2733;border-color:#334155;color:#f1f5f9}'+
     'html[data-theme=dark] .temaPop .in button.on{border-color:#ff7a1a;background:#3a210c}html[data-theme=dark] .temaPop h4,html[data-theme=dark] .temaPop .in button small{color:#94a3b8}';
     (document.head||d).appendChild(s);}
-  function fill(){var m=mode(),In=pop.firstChild;In.innerHTML='<h4></h4>';In.firstChild.textContent=lbl('title');
+  function fill(){pop.setAttribute('data-noi18n','');var m=mode(),In=pop.firstChild;In.innerHTML='<h4></h4>';In.firstChild.textContent=lbl('title');
     ORD.forEach(function(k){var b=document.createElement('button');b.type='button';b.setAttribute('data-tema',k);if(k===m)b.className='on';
       b.innerHTML='<span class="i"></span><span><span class="n"></span>'+(k==='auto'?'<small></small>':'')+'</span>';
       b.querySelector('.i').textContent=IC[k];b.querySelector('.n').textContent=lbl(k);if(k==='auto')b.querySelector('small').textContent=lbl('autoNote');

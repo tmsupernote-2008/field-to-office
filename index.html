@@ -419,14 +419,14 @@ function TR_(s){return window.I18N?I18N.tr(s):s}
 function msgTexto(r){const d=rt(r.tipo),L=[T_('📋 FIELD TO OFFICE – PARA LA OFICINA'),T_('Tipo')+': '+T_(d.corto),T_('Proyecto')+': '+TR_(r.proyecto),T_('Fecha')+': '+r.fecha];
  (d.campos||[]).forEach(c=>{const v=(r.campos||{})[c.k];if(v)L.push(T_(c.m)+': '+TR_(v))});
  L.push(T_('Foto')+': '+(r.img||(r.vistas&&r.vistas.length)?T_('Sí (va adjunta)')+(r.vistas&&r.vistas.length?T_(' – con los puntos de colores'):''):T_('No')));if(r.nombre)L.push(T_('Reporta')+': '+r.nombre);L.push('ID: '+r.id);return L.join('\n')}
-function resumen(r){const c=r.campos||{};return (c.texto||c.causa||'').slice(0,90)}
+function resumen(r){const c=r.campos||{},t=c.texto||c.causa||'';return (window.I18N?I18N.tr(t):t).slice(0,90)}
 let fotoTemp=null;
 function vPara(p){const h=lsGet(LSENV);
  return `<div class="mut dirnota" id="notaPara">Lo que tú mandas a la oficina. Llena el formulario, crea el mensaje y compártelo por WhatsApp, SMS o correo. No hay servidor: el historial se queda solo en este teléfono.</div>
  ${Object.entries(RT).map(([k,t])=>`<div class="card list-item rform" data-t="${k}" onclick="abrirForm('${k}')"><div class="big">${t.ico} ${esc(t.titulo)}</div><div class="mut">${esc(t.desc)}</div></div>`).join('')}
  ${secMarcas(p,'para')}
  <h3>🕘 Historial en este teléfono</h3>
- ${h.length?h.map(r=>`<div class="card list-item hist" onclick="vista={pantalla:'reporte',rid:'${esc(r.id)}',lado:'para'};render()"><b>${rt(r.tipo).ico} ${esc(rt(r.tipo).corto)}</b>${r.campos&&r.campos.unidad?` <span class="tag">${esc(r.campos.unidad)}</span>`:''}${r.img?' <span class="tag">📷</span>':''}${r.auto==='marcas'?` <span class="tag mtag">📸 ${esc(r.campos.total)} punto${r.campos.total==='1'?'':'s'}</span>`:''} ${r.compartido?'<span class="tag okt">Compartido ✓</span>':'<span class="tag pen">Sin compartir</span>'}<div class="mut">${esc(r.fecha)} · ${esc(r.id)}</div><div class="snip">${esc(resumen(r))}</div></div>`).join('')+`<button class="sec sm" onclick="borrarHist()">🗑️ Borrar historial</button>`:'<div class="card mut" id="histVacio">Todavía no has mandado nada desde este teléfono.</div>'}`}
+ ${h.length?h.map(r=>`<div class="card list-item hist" onclick="vista={pantalla:'reporte',rid:'${esc(r.id)}',lado:'para'};render()"><b>${rt(r.tipo).ico} ${esc(rt(r.tipo).corto)}</b>${r.campos&&r.campos.unidad?` <span class="tag">${esc(r.campos.unidad)}</span>`:''}${r.img?' <span class="tag">📷</span>':''}${r.auto==='marcas'?` <span class="tag mtag">📸 ${esc(r.campos.total)} punto${r.campos.total==='1'?'':'s'}</span>`:''} ${r.compartido?'<span class="tag okt">Compartido ✓</span>':'<span class="tag pen">Sin compartir</span>'}<div class="mut">${esc(r.fecha)} · ${esc(r.id)}</div><div class="snip" data-noi18n>${esc(resumen(r))}</div></div>`).join('')+`<button class="sec sm" onclick="borrarHist()">🗑️ Borrar historial</button>`:'<div class="card mut" id="histVacio">Todavía no has mandado nada desde este teléfono.</div>'}`}
 function abrirForm(t){fotoTemp=null;vista={pantalla:'form',tipo:t,lado:'para'};render()}
 function vForm(p,t){const d=RT[t];if(!d){vista={pantalla:'inicio',lado:'para'};return vCampo(p)}
  return `<button class="sec sm" onclick="vista={pantalla:'inicio',lado:'para'};render()">← Volver</button>

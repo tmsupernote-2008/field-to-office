@@ -58,12 +58,15 @@ function guiaCalc(c,p){const w0=ptDir(c,p);if(!w0)return {modo:'sinDir'};if(!SEN
  const h=Math.atan2(s[0],fz)/RAD,v=Math.atan2(s[1],Math.hypot(fz,s[0]))/RAD,tot=Math.acos(Math.max(-1,Math.min(1,fz)))/RAD;
  const dentro=fz>0&&Math.abs(Math.atan2(s[0],fz)/RAD)<fov.h/2*.85&&Math.abs(Math.atan2(s[1],fz)/RAD)<fov.v/2*.85;
  return {modo:'ok',dentro,h,v,tot,solo,sx:s[0],sy:s[1],fz,atras:fz<0}}
+/* 🌐 los textos de la guía se arman con frases completas del diccionario (i18n_dic.js); en español salen igual que antes */
+function GT(k,p){if(window.I18N)return I18N.t(k,p);return k.replace(/\{(\w+)\}/g,(m,n)=>p&&p[n]!=null?p[n]:m)}
+function GTR(s){return window.I18N&&s?I18N.tr(s):s}
 function cuantoTxt(g){return g<20?'un poco ':g>110?'mucho ':''}
 function guiaPalabras(g){const P=[];
- if(g.atras&&Math.abs(g.h)>135){P.push('está detrás de ti: date la vuelta'+(g.h>0?' por la derecha':' por la izquierda'))}
- else if(Math.abs(g.h)>=6)P.push('gira '+cuantoTxt(Math.abs(g.h))+(g.h>0?'a la derecha':'a la izquierda')+` (≈${Math.round(Math.abs(g.h))}°)`);
- if(Math.abs(g.v)>=6&&!(g.atras&&Math.abs(g.h)>135))P.push(cuantoTxt(Math.abs(g.v))+(g.v>0?'más arriba':'más abajo')+` (≈${Math.round(Math.abs(g.v))}°)`);
- return P.join(', ')||'casi enfrente'}
+ if(g.atras&&Math.abs(g.h)>135){P.push(GT('está detrás de ti: date la vuelta'+(g.h>0?' por la derecha':' por la izquierda')))}
+ else if(Math.abs(g.h)>=6)P.push(GT('gira '+cuantoTxt(Math.abs(g.h))+(g.h>0?'a la derecha':'a la izquierda')+' (≈{n}°)',{n:Math.round(Math.abs(g.h))}));
+ if(Math.abs(g.v)>=6&&!(g.atras&&Math.abs(g.h)>135))P.push(GT(cuantoTxt(Math.abs(g.v))+(g.v>0?'más arriba':'más abajo')+' (≈{n}°)',{n:Math.round(Math.abs(g.v))}));
+ return P.join(', ')||GT('casi enfrente')}
 /* ---- lista de marcas de la unidad (todas las vistas) ---- */
 /* en “🔎 Buscar marcas” (vista.buscar) la lista es de TODO el proyecto y se puede filtrar (vista.gq) */
 function guiaTodas(c){const cs=vista.buscar?capsProj(c.pid):capsUnidad(c.pid,c.unidad);return cs.flatMap(x=>x.puntos.map(p=>({c:x,p}))).sort((a,b)=>(a.p.num||0)-(b.p.num||0))}
@@ -80,7 +83,7 @@ function guiaOptsHTML(c){const L=guiaLista(c);
 function guiaBuscar(q){vista.gq=q;const c=capById(vista.cid);if(!c)return;const s=$('guiaSel');if(s){s.innerHTML=guiaOptsHTML(c);s.value=guiaTarget()&&guiaLista(c).some(t=>t.p.cod===vista.guia)?vista.guia:''}
  const n=$('guiaN');if(n)n.textContent=guiaLista(c).length+' marca'+(guiaLista(c).length===1?'':'s')}
 function guiaBarHTML(c){return `<div class="guiabar" id="guiaBar"><button class="sec" id="btnGuiaAntC" aria-label="Anterior" onclick="guiaPaso(-1)">◀</button><button id="btnGuiar" onclick="guiar()">🧭 Guiar</button><button class="sec" id="btnGuiaSigC" aria-label="Siguiente" onclick="guiaPaso(1)">▶</button></div>
- <div id="guiaInfo" aria-live="polite"></div><div class="row" style="margin-top:6px"><button class="sec sm hidden" id="btnGuiaVista" onclick="guiaIrVista()">📷 Ir a la vista de esa marca</button></div>`}
+ <div id="guiaInfo" aria-live="polite" data-noi18n></div><div class="row" style="margin-top:6px"><button class="sec sm hidden" id="btnGuiaVista" onclick="guiaIrVista()">📷 Ir a la vista de esa marca</button></div>`}
 function guiaPaso(d){const c=capById(vista.cid);if(!c)return;const L=guiaLista(c);if(!L.length){toast('No hay marcas con esa búsqueda');return}let i=L.findIndex(t=>t.p.cod===vista.guia);
  i=i<0?(d>0?0:L.length-1):(i+d+L.length)%L.length;guiaSel(L[i].p.cod)}
 function guiaIrVista(){const T=guiaTarget();if(!T||T.c.id===vista.cid)return;vista.cid=T.c.id;vista.m='cam';render();toast('Foto guía de '+T.p.cod)}
@@ -100,9 +103,9 @@ function guiaFlechaHTML(T,dx,dy,txt,otra){const st=$('stage');if(!st)return '';c
  let x=W/2+dx*k,y=H/2+dy*k;if(dir==='izq'||dir==='der')y=Math.max(40,Math.min(H-40,y));else x=Math.max(80,Math.min(W-80,x));
  /* la flecha va en la orilla; la etiqueta hacia adentro */
  const L={izq:[x-29,y,'translate(0,-50%)','row'],der:[x+29,y,'translate(-100%,-50%)','row-reverse'],arriba:[x,y-29,'translate(-50%,0)','column'],abajo:[x,y+29,'translate(-50%,-100%)','column-reverse']}[dir];
- return `<div class="gflecha" id="guiaFlecha" data-dir="${dir}" data-cod="${esc(T.p.cod)}" style="left:${L[0].toFixed(1)}px;top:${L[1].toFixed(1)}px;transform:${L[2]};flex-direction:${L[3]}" ${otra?'onclick="guiaIrVista()"':''} title="${esc(txt)}">
+ return `<div class="gflecha" id="guiaFlecha" data-noi18n data-dir="${dir}" data-cod="${esc(T.p.cod)}" style="left:${L[0].toFixed(1)}px;top:${L[1].toFixed(1)}px;transform:${L[2]};flex-direction:${L[3]}" ${otra?'onclick="guiaIrVista()"':''} title="${esc(txt)}">
  <div class="garrow" style="transform:rotate(${rot.toFixed(1)}deg)">${FLECHA_SVG(t.color)}</div>
- <div class="glbl"><span class="gnum" style="background:${esc(t.color)};color:${txtCol(t.color)}">${esc(T.p.num)}</span>${esc(T.p.cod)} · ${esc(t.nombre)}<br>${esc(txt)}</div></div>`}
+ <div class="glbl"><span class="gnum" style="background:${esc(t.color)};color:${txtCol(t.color)}">${esc(T.p.num)}</span>${esc(T.p.cod)} · ${esc(GTR(t.nombre))}<br>${esc(txt)}</div></div>`}
 function guiaRing(T){const d=document.querySelector(`#dots .dot[data-cod="${CSS.escape(T.p.cod)}"]`);if(!d)return;d.classList.add('objetivo');
  const t=ptTipo(T.p);['','r2'].forEach(k=>{const r=document.createElement('div');r.className='ring '+k;if(!k)r.id='guiaRing';r.style.left=d.style.left;r.style.top=d.style.top;r.style.borderColor=t.color;$('dots').appendChild(r)})}
 function guiaUpd(){const ov=document.getElementById('guiaOv');if(!ov)return;const c=capById(vista.cid);if(!c)return;
@@ -112,12 +115,12 @@ function guiaUpd(){const ov=document.getElementById('guiaOv');if(!ov)return;cons
  const pon=(h,t,e)=>{ov.innerHTML=h;ov.dataset.estado=e;if(info)info.textContent=t};
  if(bv)bv.classList.toggle('hidden',!(T&&T.c.id!==c.id));
  if(!T)return pon('','','');
- const otra=T.c.id!==c.id,g=guiaCalc(T.c,T.p),x=ptTipo(T.p),nom=T.p.cod+' ('+x.nombre+')',dondeV=(T.c.unidad!==c.unidad?' – '+uLabel(T.c.unidad):'')+(T.c.area?' – '+T.c.area:'');
+ const otra=T.c.id!==c.id,g=guiaCalc(T.c,T.p),x=ptTipo(T.p),nom=T.p.cod+' ('+GTR(x.nombre)+')',dondeV=(T.c.unidad!==c.unidad?' – '+GTR(uLabel(T.c.unidad)):'')+(T.c.area?' – '+GTR(T.c.area):'');
  if(!otra){
-  if(g.modo!=='ok'){guiaRing(T);return pon('',(g.modo==='sinDir'?`🎯 ${nom}: esta vista se guardó sin dirección (vista vieja o sin sensores). `:`🎯 ${nom}: sin sensores de orientación. `)+'Alinea la foto guía con la pared: la marca está donde late el anillo.','anillo')}
-  if(g.dentro){guiaRing(T);return pon('',`✅ ${nom} está a la vista: termina de alinear la foto guía; la marca está en el anillo.`+(g.solo?' (Sin brújula: solo se revisó arriba/abajo.)':''),'anillo')}
-  const p=guiaPalabras(g);return pon(guiaFlechaHTML(T,g.sx,-g.sy,p,false),`➡️ ${nom}: ${p}.`+(g.solo?' (Sin brújula: solo arriba/abajo es confiable; izquierda/derecha guíate con la foto guía.)':''),'flecha')}
+  if(g.modo!=='ok'){guiaRing(T);return pon('',GT(g.modo==='sinDir'?'🎯 {a}: esta vista se guardó sin dirección (vista vieja o sin sensores). Alinea la foto guía con la pared: la marca está donde late el anillo.':'🎯 {a}: sin sensores de orientación. Alinea la foto guía con la pared: la marca está donde late el anillo.',{a:nom}),'anillo')}
+  if(g.dentro){guiaRing(T);return pon('',GT('✅ {a} está a la vista: termina de alinear la foto guía; la marca está en el anillo.',{a:nom})+(g.solo?' '+GT('(Sin brújula: solo se revisó arriba/abajo.)'):''),'anillo')}
+  const p=guiaPalabras(g);return pon(guiaFlechaHTML(T,g.sx,-g.sy,p,false),GT('➡️ {a}: {b}.',{a:nom,b:p})+(g.solo?' '+GT('(Sin brújula: solo arriba/abajo es confiable; izquierda/derecha guíate con la foto guía.)'):''),'flecha')}
  /* la marca está en otra vista/foto */
- if(g.modo==='ok'&&!g.dentro){const p=guiaPalabras(g);return pon(guiaFlechaHTML(T,g.sx,-g.sy,p+' · otra vista',true),`➡️ ${nom} está en otra vista${dondeV}: ${p}. Cuando la tengas enfrente, toca “Ir a la vista”.`,'flecha')}
- if(g.modo==='ok'&&g.dentro)return pon(guiaFlechaHTML(T,1,0,'ya estás mirando hacia ella: toca para ver su foto guía',true),`✅ Ya estás mirando hacia ${nom} (otra vista${dondeV}). Toca la flecha o “Ir a la vista” para ver su foto guía.`,'flecha');
- return pon(guiaFlechaHTML(T,1,0,'está en otra vista: toca para ir',true),`📷 ${nom} está en otra vista${dondeV}${g.modo==='sinDir'?' (guardada sin dirección)':''}. Toca la flecha o “Ir a la vista” para ver su foto guía.`,'otraVista')}
+ if(g.modo==='ok'&&!g.dentro){const p=guiaPalabras(g);return pon(guiaFlechaHTML(T,g.sx,-g.sy,p+' · '+GT('otra vista'),true),GT('➡️ {a} está en otra vista{b}: {c}. Cuando la tengas enfrente, toca “Ir a la vista”.',{a:nom,b:dondeV,c:p}),'flecha')}
+ if(g.modo==='ok'&&g.dentro)return pon(guiaFlechaHTML(T,1,0,GT('ya estás mirando hacia ella: toca para ver su foto guía'),true),GT('✅ Ya estás mirando hacia {a} (otra vista{b}). Toca la flecha o “Ir a la vista” para ver su foto guía.',{a:nom,b:dondeV}),'flecha');
+ return pon(guiaFlechaHTML(T,1,0,GT('está en otra vista: toca para ir'),true),GT('📷 {a} está en otra vista{b}{c}. Toca la flecha o “Ir a la vista” para ver su foto guía.',{a:nom,b:dondeV,c:g.modo==='sinDir'?' '+GT('(guardada sin dirección)'):''}),'otraVista')}

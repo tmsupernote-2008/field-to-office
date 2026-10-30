@@ -36,10 +36,15 @@ function pick(k,lg){lg=lg||lang;if(lg==='es')return k;var e=D[k];var s=e&&e[LANG
 function fill(s,p){return s.replace(/\{(\w+)\}/g,function(m,n){return p&&p[n]!=null?String(p[n]):m})}
 /* traduce un texto completo (sin espacios de orilla). Devuelve null si no lo conoce. */
 var MISS=Object.create(null),DEBUG=false;try{DEBUG=localStorage.getItem('fto_i18n_debug')==='1'}catch(e){}
+/* textos que ya están en el idioma elegido (p. ej. armados con t()): se dejan tal cual */
+var VALS=Object.create(null);function isVal(c,lg){var V=VALS[lg];if(!V){V=VALS[lg]=Object.create(null);var ix=LANGS.indexOf(lg)-1;Object.keys(D).forEach(function(k){var v=D[k][ix];if(v&&!/\{\w+\}/.test(v))V[sp(v)]=1})}return !!V[c]}
 function tc(c,lg,depth){lg=lg||lang;if(lg==='es'||!c)return c;depth=depth||0;
  var k=EX[c];if(k!=null){var r=pick(k,lg);if(r!=null)return r}
+ if(isVal(c,lg))return c;
  for(var i=0;i<PAT.length;i++){var P=PAT[i],m=P.re.exec(c);if(m){var s=pick(P.k,lg);if(s==null)continue;var o={};
    P.names.forEach(function(n,j){var v=m[j+1];o[n]=n.charAt(0)==='n'||depth>2?v:(tc(v,lg,depth+1)||v)});return fill(s,o)}}
+ /* “Piso 2 · 1 vista ·” (el resto va en otro elemento): se traduce sin el separador de la orilla */
+ var eg=/^(·\s+)?([\s\S]*?)(\s+·)?$/.exec(c);if(depth<3&&(eg[1]||eg[3])&&eg[2]){var r0=tc(eg[2],lg,depth+1);if(r0!=null)return (eg[1]||'')+r0+(eg[3]||'')}
  if(depth<2&&c.indexOf(' · ')>0){var parts=c.split(' · '),ch=false;parts=parts.map(function(x){var r=tc(x,lg,depth+1);if(r!=null&&r!==x)ch=true;return r==null?x:r});if(ch)return parts.join(' · ')}
  if(depth===0&&DEBUG&&/[a-záéíóúñ]{3}/i.test(c)&&!MISS[c]){MISS[c]=1;try{console.log('I18N-MISS:'+c)}catch(e){}}
  return null}
