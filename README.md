@@ -20,4 +20,12 @@ Guía de campo de drywall para supers y foremen. Lado oficina (con PIN) para car
 - **Tipos** editables (nombre, color, quién/qué es). De fábrica: Parche drywall, Electricista (alrededor de enchufes/luces), Plomero, Fire sprinkler, Esquina/bead, Otro.
 - **T&M automático** (sin precios) en el historial de “⬆️ Para la oficina”, con el mismo formato del reporte *Trabajo extra T&M* y los botones de compartir; se puede agrupar por vista, por punto o por unidad y día. Al pegarlo en “⬇️ Recibido del campo” salen todos los campos.
 - **Límite**: no es AR de verdad (una PWA no puede anclar puntos en la pared; WebXR no existe en Safari de iPhone). Se alinea a ojo con la foto guía.
-- Datos: lista de vistas en localStorage; fotos en IndexedDB (solo en ese teléfono). Cache del service worker: `fto-v6`.
+- Datos: lista de vistas en localStorage; fotos en IndexedDB (solo en ese teléfono). Cache del service worker: `fto-v7`.
+
+**🧭 Guiar a marca con flechas** (rama `flechas-guia`, código en `guia.js`): en “👁️ Ver con cámara”.
+- Al marcar, si el teléfono da los sensores de orientación (DeviceOrientationEvent; en iPhone hay que tocar “🧭 Activar sensores”), se guarda hacia dónde apuntaba el teléfono y el rumbo/inclinación de cada punto (campo de visión de la cámara aproximado: 64° del lado largo).
+- “Guiar a marca”: escoge una marca de la unidad (o ◀ Anterior / Siguiente ▶). Si está fuera de la imagen o en otra vista, sale una flecha grande en la orilla (izquierda/derecha/arriba/abajo, o “detrás de ti”) con el número, color, tipo y “gira a la izquierda (≈40°)”. Si está en otra vista, al tocar la flecha se abre su foto guía. Cuando está a la vista, un anillo late sobre el punto.
+- Sin brújula: izquierda/derecha solo en la misma sesión (arriba/abajo siempre). Sin sensores o vistas viejas (sin dirección): anillo sobre el punto + foto guía, y ◀ ▶ por lista.
+- **Límite**: guía aproximada, no AR de verdad; la brújula falla cerca de metal y aparatos eléctricos.
+
+**🎤 Dictar** (`voz.js`): botón 🎤 debajo de los campos de descripción/nota (Reportar problema, Trabajo extra T&M, Atraso, nota de 📸 Marcar reparaciones y Notas de la ficha en la oficina). Web Speech API (SpeechRecognition / webkitSpeechRecognition), idioma de la app (español → es-US por defecto o la región del teléfono), continuo con texto provisional, toca para empezar/parar, “escuchando…”, y el texto se inserta en el cursor sin borrar lo escrito. Si el navegador no lo tiene o niegan el micrófono, sale un aviso para usar el micrófono del teclado. El reconocimiento lo hace el navegador (en Chrome el audio puede ir a los servidores de Google); la app no manda nada a ningún servidor.

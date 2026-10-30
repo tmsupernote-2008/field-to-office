@@ -52,6 +52,16 @@ mark{background:var(--acc);color:#000;border-radius:3px;padding:0 1px}.nf{color:
 .sw{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:5px;border:2px solid #fff;flex:0 0 auto}.sw.big{width:24px;height:24px}
 .leyrow{display:flex;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}.leyrow>div{flex:1}.pitem{padding:8px 4px;border-bottom:1px solid var(--line)}
 img.thumb{width:96px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#000}.secmarcas{border-left:5px solid #ff3b30}
+.guiaov{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:12px;z-index:3}
+.gflecha{position:absolute;pointer-events:auto;display:flex;align-items:center;gap:3px;cursor:pointer}.gflecha .glbl{width:max-content;max-width:150px}
+.garrow{width:58px;height:58px;flex:0 0 auto;filter:drop-shadow(0 0 3px #000) drop-shadow(0 0 6px rgba(0,0,0,.8));animation:empuje 1s ease-in-out infinite}.garrow svg{width:100%;height:100%;display:block}
+@keyframes empuje{0%,100%{opacity:1}50%{opacity:.6}}
+.glbl{background:rgba(0,0,0,.8);color:#fff;font-size:12px;font-weight:700;padding:4px 7px;border-radius:8px;text-align:center;line-height:1.25}
+.gnum{display:inline-block;min-width:20px;height:20px;padding:0 3px;border-radius:10px;border:2px solid #fff;margin-right:3px;text-align:center;line-height:16px;font-weight:900}
+.ring{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:4px solid #fff;box-shadow:0 0 0 2px #000;animation:pulso 1.2s ease-out infinite;pointer-events:none;z-index:2}.ring.r2{animation-delay:.6s}
+@keyframes pulso{0%{transform:scale(1);opacity:1}100%{transform:scale(3);opacity:0}}
+.dot.objetivo{z-index:3}#guiaInfo{font-weight:700;color:var(--tx);margin-top:6px}#guiaCtl select{flex:1 1 auto}
+.microw{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}.mic.on{background:#ff3b30;color:#fff;border-color:#ff3b30}.micst{color:#ff6b6b;font-weight:700}.michint{font-size:13px}
 .hidden{display:none!important}#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ok);color:#000;font-weight:700;padding:10px 16px;border-radius:10px;display:none;z-index:9}
 </style>
 </head>
@@ -65,6 +75,8 @@ img.thumb{width:96px;height:72px;object-fit:cover;border-radius:8px;border:1px s
 <div id="toast"></div>
 <script src="specs.js"></script>
 <script src="marcas.js"></script>
+<script src="guia.js"></script>
+<script src="voz.js"></script>
 <script>
 /* ===== Field to Office - prototipo =====
    Datos guardados en el teléfono (localStorage; las fotos de “📸 Marcar reparaciones” en IndexedDB, ver marcas.js). El proyecto de ejemplo viene de documentos reales SIN nombres ni códigos; lo que falta dice "Pendiente". */
@@ -242,7 +254,7 @@ function abrirForm(t){fotoTemp=null;vista={pantalla:'form',tipo:t,lado:'para'};r
 function vForm(p,t){const d=RT[t];if(!d){vista={pantalla:'inicio',lado:'para'};return vCampo(p)}
  return `<button class="sec sm" onclick="vista={pantalla:'inicio',lado:'para'};render()">← Volver</button>
  <div class="card" id="rform"><h3>${d.ico} ${esc(d.titulo)}</h3><div class="mut">⬆️ Para la oficina · Proyecto: ${esc(p.nombre)}</div>
- ${d.campos.filter(c=>!c.auto).map(c=>`<label for="r_${c.k}">${esc(c.l)}${c.req?' *':''}</label>${c.ta?`<textarea id="r_${c.k}"></textarea>`:`<input id="r_${c.k}" autocomplete="off"${c.num?' inputmode="numeric"':''}${c.u?' list="unidadesList" oninput="autoPiso(this.value)"':''}>`}`).join('')}
+ ${d.campos.filter(c=>!c.auto).map(c=>`<label for="r_${c.k}">${esc(c.l)}${c.req?' *':''}</label>${c.ta?`<textarea id="r_${c.k}" data-mic></textarea>`:`<input id="r_${c.k}" autocomplete="off"${c.num?' inputmode="numeric"':''}${c.u?' list="unidadesList" oninput="autoPiso(this.value)"':''}>`}`).join('')}
  <datalist id="unidadesList">${p.unidades.map(u=>`<option value="${esc(u.unidad)}">`).join('')}</datalist>
  <label for="r_foto">📷 Foto (opcional)</label><input type="file" id="r_foto" accept="image/*" onchange="tomarFoto(this)"><div id="fprev"></div>
  <label for="r_nombre">Tu nombre (opcional, se recuerda en este teléfono)</label><input id="r_nombre" value="${esc(localStorage.getItem(LSNOM)||'')}">
@@ -383,7 +395,7 @@ function vEditFicha(p,id){const f=p.fichas.find(x=>x.id===id)||{tipo:'pared',adj
  return `<button class="sec sm" onclick="vista={pantalla:'inicio'};render()">← Volver</button>
  ${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – no usar en obra</div>':''}<div class="card"><h3>${id?'Editar ficha '+esc(id):'Nueva ficha'}</h3>
  <label>Tipo</label><select id="f_tipo">${Object.entries(TIPOS).map(([k,v])=>`<option value="${k}" ${f.tipo===k?'selected':''}>${v}</option>`).join('')}</select>
- ${CAMPOS.map(([k,l])=>`<label>${l}</label>${k==='notas'?`<textarea id="f_${k}">${esc(f[k])}</textarea>`:`<input id="f_${k}" value="${esc(f[k])}">`}`).join('')}
+ ${CAMPOS.map(([k,l])=>`<label>${l}</label>${k==='notas'?`<textarea id="f_${k}" data-mic>${esc(f[k])}</textarea>`:`<input id="f_${k}" value="${esc(f[k])}">`}`).join('')}
  <label>Fotos y PDFs</label><div id="adjs">${(f.adj||[]).map((x,i)=>`<div class="row"><span>${x.tipo==='pdf'?'📄':'🖼️'} ${esc(x.nombre)}</span><button class="red sm" style="flex:0" onclick="quitarAdj(${i})">✕</button></div>`).join('')||'<span class="mut">Sin archivos</span>'}</div>
  <input type="file" accept="image/*,application/pdf" multiple onchange="agregarAdj(this)" style="margin-top:8px">
  <div class="row" style="margin-top:14px"><button onclick="guardarFicha('${esc(id||'')}')">💾 Guardar</button>${id?`<button class="red" onclick="borrarFicha('${esc(id)}')">Borrar</button>`:''}</div></div>`;}
