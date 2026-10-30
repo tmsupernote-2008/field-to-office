@@ -28,6 +28,7 @@ textarea{min-height:70px}label{display:block;margin:10px 0 4px;color:var(--mut);
 .spec{display:grid;grid-template-columns:42% 58%;gap:0;border-top:1px solid var(--line);margin-top:8px}
 .spec div{padding:9px 6px;border-bottom:1px solid var(--line)}.spec div:nth-child(odd){color:var(--mut);font-size:14px}
 .spec div:nth-child(even){font-weight:700}
+.pend{color:var(--warn);font-style:italic}
 .alerta{background:#3d0d0d;border-left:5px solid var(--red);padding:10px;border-radius:8px;margin:8px 0;font-weight:700}
 .tabs{display:flex;gap:6px;margin-bottom:8px}.tabs button{flex:1}
 .list-item{cursor:pointer}.list-item:active{background:#262626}
@@ -45,24 +46,33 @@ img.adj{max-width:100%;border-radius:10px;margin-top:8px;border:1px solid var(--
 <div id="toast"></div>
 <script>
 /* ===== Field to Office - prototipo =====
-   Datos guardados en el teléfono (localStorage). El proyecto de ejemplo es FICTICIO. */
+   Datos guardados en el teléfono (localStorage). El proyecto de ejemplo viene de documentos reales SIN nombres ni códigos; lo que falta dice "Pendiente". */
 const LS='fto_data_v1', LSPIN='fto_pin_hash', LSPROJ='fto_proj';
 const TIPOS={pared:'Pared / Assembly',firewall:'Fire wall',shaft:'Shaft',rc1:'RC1 channel'};
-function ejemplo(){return {id:'ejemplo',nombre:'PROYECTO DE EJEMPLO',ejemplo:true,direccion:'(dirección de ejemplo)',
+const EJ_VER=2, PEND='Pendiente: falta en los documentos';
+function ejemplo(){
+ const T='5/8" Type X (todo el drywall es 5/8" Type X)';
+ const TORN='Type S para metal liviano (light-gauge). Studs más pesados: tornillo más pesado. Rosca fina (fine thread) para placas sound-damping. (Spec 092900) · Medida/largo: '+PEND;
+ const PAT='Separación en orillas y en el campo: '+PEND+'. Distancia del tornillo a la orilla: seguir las reglas de la spec 092900.';
+ const RATED='Muro con rating: continuo de piso a piso (floor to floor). Sellar TODAS las penetraciones con fire caulk.';
+ const NOTA='EJEMPLO – no usar en obra. Datos tomados de documentos reales (hoja de tipos de partición y spec 092900), sin nombres ni códigos del proyecto. Lo que dice "Pendiente" NO está en los documentos: no adivinar.';
+ return {id:'ejemplo',ver:EJ_VER,nombre:'PROYECTO DE EJEMPLO',ejemplo:true,
+ guiaCodigo:'En la hoja de tipos de partición, cada dígito del código del muro dice algo: 1) material · 2) horas de rating · 3) ancho del stud · 4) capas de drywall · 5) condición especial (resilient channel o tile backer).',
  fichas:[
- {id:'A1',tipo:'pared',nombre:'Pared tipo A1 (EJEMPLO) – entre cuartos',capas:'1 capa de 5/8" Type X cada lado',dobleCapa:'No',tornillo:'#6 x 1-1/4" punta fina (ejemplo)',patron:'12" en el campo, 8" en las orillas (ejemplo)',metal:'Stud 3-5/8" cal. 25 @ 16" o.c. (ejemplo)',aislamiento:'Sí, insulation acústico (ejemplo)',notas:'Dato de EJEMPLO. Reemplazar con el plano real.',adj:[]},
- {id:'B2',tipo:'firewall',nombre:'Fire wall B2 (EJEMPLO) – entre unidades, 1 hora',capas:'2 capas de 5/8" Type X del lado del pasillo, 1 capa del lado de la unidad (ejemplo)',dobleCapa:'SÍ – lado pasillo, desde el piso hasta el deck (ejemplo)',tornillo:'1ra capa #6 x 1-1/4", 2da capa #6 x 1-5/8" (ejemplo)',patron:'1ra capa 24" o.c., 2da capa 12" o.c., juntas alternadas (ejemplo)',metal:'Stud 3-5/8" cal. 20 @ 16" o.c. (ejemplo)',aislamiento:'Sí (ejemplo)',notas:'Fire caulking en todas las penetraciones y arriba en el deck. Fire tape en juntas. Dato de EJEMPLO.',alerta:'Fire wall: no dejar huecos. Doble capa donde dice el plano.',adj:[]},
- {id:'SH1',tipo:'shaft',nombre:'Shaft SH1 (EJEMPLO) – ducto de baño',capas:'Shaftliner 1" + 1 capa 5/8" Type X (ejemplo)',dobleCapa:'Ver plano (ejemplo)',tornillo:'#6 x 1-5/8" (ejemplo)',patron:'12" o.c. (ejemplo)',metal:'C-H stud 2-1/2" y J-track (ejemplo)',aislamiento:'Según plano (ejemplo)',notas:'Se instala desde un solo lado. Dato de EJEMPLO.',adj:[]},
- {id:'RC1',tipo:'rc1',nombre:'RC1 channel (EJEMPLO) – techo entre pisos',capas:'1 capa 5/8" Type X sobre RC1 (ejemplo)',dobleCapa:'No (ejemplo)',tornillo:'#6 x 1" tipo S, solo al channel, nunca al joist (ejemplo)',patron:'RC1 @ 16" o.c., tornillos 12" o.c. (ejemplo)',metal:'Resilient channel RC1 (ejemplo)',aislamiento:'Sí (ejemplo)',notas:'No atornillar el drywall a la madera/joist: pierde el aislamiento de sonido. Dato de EJEMPLO.',alerta:'Tornillo solo al channel.',adj:[]}
+ {id:'A',tipo:'pared',nombre:'Muro tipo A (EJEMPLO) – metal stud',rating:'Según el dígito de horas del código (ver hoja de tipos)',capas:T+'. Número de capas: lo dice el dígito de capas del código.',dobleCapa:'Solo si la hoja de tipos muestra 2 capas',tornillo:TORN,patron:PAT,metal:'Metal stud @ 16" o.c. Ancho del stud: lo dice el código. Calibre: '+PEND,aislamiento:PEND,ul:PEND,notas:NOTA,adj:[]},
+ {id:'1H',tipo:'firewall',nombre:'Muro 1 hora (EJEMPLO) – con rating',rating:'1 hora',capas:T+'. Número de capas: lo dice el dígito de capas del código.',dobleCapa:'Solo donde la hoja de tipos muestra 2 capas',tornillo:TORN,patron:PAT,metal:'Metal stud @ 16" o.c. Ancho del stud: lo dice el código. Calibre: '+PEND,aislamiento:PEND,ul:PEND,alerta:RATED,notas:NOTA,adj:[]},
+ {id:'2H',tipo:'firewall',nombre:'Muro 2 horas (EJEMPLO) – doble capa',rating:'2 horas',capas:T+'. La hoja de tipos muestra 2 capas.',dobleCapa:'Sí – donde la hoja de tipos muestra 2 capas (fire-rated)',tornillo:TORN,patron:PAT,metal:'Metal stud @ 16" o.c. Ancho del stud: lo dice el código. Calibre: '+PEND,aislamiento:PEND,ul:PEND,alerta:RATED+' Doble capa donde lo muestra la hoja.',notas:NOTA,adj:[]},
+ {id:'SH2',tipo:'shaft',nombre:'Shaft 2 horas (EJEMPLO)',rating:'2 horas',capas:T+'. Detalle de capas del shaft: '+PEND,dobleCapa:'Solo donde la hoja de tipos muestra 2 capas',tornillo:TORN,patron:PAT,metal:'Shaft wall studs @ 24" o.c. Ancho del stud: lo dice el código. Perfil y calibre: '+PEND,aislamiento:PEND,ul:PEND,alerta:RATED+' Shaft studs a 24" o.c. (no 16").',notas:NOTA,adj:[]},
+ {id:'RC1',tipo:'rc1',nombre:'Condición especial: resilient channel (EJEMPLO)',rating:'Según el código del muro donde va',capas:T,dobleCapa:'Solo donde la hoja de tipos muestra 2 capas',tornillo:'Detalle de tornillo al channel: '+PEND+'. (Spec 092900: rosca fina para placas sound-damping.)',patron:'Separación del channel y de los tornillos: '+PEND,metal:'Resilient channel (RC1): '+PEND,aislamiento:PEND,ul:PEND,alerta:'Detalles del RC1 NO están en los documentos. Pedir el detalle a la oficina antes de instalar.',notas:'El último dígito del código marca condición especial: resilient channel o tile backer. '+NOTA,adj:[]}
  ],
  unidades:[
- {unidad:'201',piso:'2',fichas:['A1','B2','SH1','RC1']},
- {unidad:'202',piso:'2',fichas:['A1','B2','RC1']},
- {unidad:'301',piso:'3',fichas:['A1','B2','SH1','RC1']},
- {unidad:'Pasillo 2do FL',piso:'2',fichas:['B2']}
+ {unidad:'201',piso:'2',fichas:['A','1H','SH2']},
+ {unidad:'202',piso:'2',fichas:['A','1H','RC1']},
+ {unidad:'301',piso:'3',fichas:['A','2H','SH2']},
+ {unidad:'Pasillo piso 2',piso:'2',fichas:['2H']}
  ]};}
 let data=load(), modo='campo', vista={pantalla:'inicio'}, admin=false;
-function load(){try{const d=JSON.parse(localStorage.getItem(LS));if(d&&d.length)return d}catch(e){}return [ejemplo()]}
+function load(){try{const d=JSON.parse(localStorage.getItem(LS));if(d&&d.length){/* reemplaza el ejemplo viejo (ficticio) por el nuevo */const i=d.findIndex(x=>x&&x.id==='ejemplo');if(i>=0&&(d[i].ver||1)<EJ_VER){d[i]=ejemplo();try{localStorage.setItem(LS,JSON.stringify(d))}catch(e){}}return d}}catch(e){}return [ejemplo()]}
 function save(){try{localStorage.setItem(LS,JSON.stringify(data))}catch(e){alert('No hay espacio en el teléfono para guardar. Usa fotos más pequeñas.')}}
 function proj(){const id=localStorage.getItem(LSPROJ);return data.find(p=>p.id===id)||data[0]}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -70,6 +80,7 @@ function toast(t){const e=document.getElementById('toast');e.textContent=t;e.sty
 async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('fto:'+s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function tagTipo(t){const c={firewall:'fw',shaft:'sh',rc1:'rc'}[t]||'';return `<span class="tag ${c}">${esc(TIPOS[t]||t)}</span>`}
 const $=id=>document.getElementById(id);
+function val(v){return esc(v).split(PEND).join(`<span class="pend">⏳ ${PEND}</span>`)}
 
 function render(){
  const p=proj(); $('hsub').textContent=(p?p.nombre:'')+(modo==='oficina'?' · Oficina':' · Campo');
@@ -82,16 +93,17 @@ function vCampo(p){
  if(!p)return '<div class="card">No hay proyectos. Pide el enlace a la oficina.</div>';
  if(vista.pantalla==='ficha')return vFicha(p,vista.id);
  if(vista.pantalla==='unidad')return vUnidad(p,vista.id);
- return `${p.ejemplo?'<div class="ej">⚠️ PROYECTO DE EJEMPLO – datos ficticios, NO usar en obra</div>':''}
+ return `${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – no usar en obra<br><span style="font-weight:600">Datos de documentos reales sin nombres. Lo que dice “Pendiente” falta en los documentos.</span></div>':''}
  ${data.length>1?`<select onchange="localStorage.setItem(LSPROJ,this.value);vista={pantalla:'inicio'};render()">${data.map(x=>`<option value="${x.id}" ${x.id===p.id?'selected':''}>${esc(x.nombre)}</option>`).join('')}</select>`:''}
+ ${p.guiaCodigo?`<details class="card"><summary><b>🔢 Cómo leer el código del muro</b></summary><p>${esc(p.guiaCodigo)}</p></details>`:''}
  <label>🔎 Busca por unidad, piso o tipo de pared</label>
- <input id="q" placeholder="Ej: 201, B2, fire, shaft, RC1" autocomplete="off">
+ <input id="q" placeholder="Ej: 201, 1 hora, fire, shaft, RC1" autocomplete="off">
  <div id="res">${resultados(p,vista.q||'')}</div>`;
 }
 function resultados(p,q){
  q=(q||'').toLowerCase().trim();
  const us=p.unidades.filter(u=>!q||u.unidad.toLowerCase().includes(q)||('piso '+u.piso).includes(q)||(u.piso+'fl').includes(q.replace(/\s/g,'')));
- const fs=p.fichas.filter(f=>!q||[f.id,f.nombre,TIPOS[f.tipo],f.tipo].join(' ').toLowerCase().includes(q));
+ const fs=p.fichas.filter(f=>!q||[f.id,f.nombre,TIPOS[f.tipo],f.tipo,f.rating].join(' ').toLowerCase().includes(q));
  let h='';
  if(us.length)h+=`<h3>🏠 Unidades</h3>`+us.map(u=>`<div class="card list-item" onclick="vista={pantalla:'unidad',id:'${esc(u.unidad)}',q:vista.q};render()"><div class="big">${esc(u.unidad)}</div><div class="mut">Piso ${esc(u.piso)} · ${u.fichas.length} fichas</div></div>`).join('');
  if(fs.length)h+=`<h3>🧱 Tipos de pared</h3>`+fs.map(f=>`<div class="card list-item" onclick="vista={pantalla:'ficha',id:'${esc(f.id)}',q:vista.q};render()"><div class="big">${esc(f.id)}</div>${tagTipo(f.tipo)}<div>${esc(f.nombre)}</div></div>`).join('');
@@ -99,19 +111,19 @@ function resultados(p,q){
 }
 function vUnidad(p,id){const u=p.unidades.find(x=>x.unidad===id);if(!u)return '';
  return `<button class="sec sm" onclick="vista={pantalla:'inicio',q:vista.q};render()">← Volver</button>
- ${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – NO usar en obra</div>':''}
+ ${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – no usar en obra</div>':''}
  <div class="card"><div class="big">Unidad ${esc(u.unidad)}</div><div class="mut">Piso ${esc(u.piso)}</div></div>
  <h3>Paredes de esta unidad</h3>`+u.fichas.map(fid=>{const f=p.fichas.find(x=>x.id===fid);return f?`<div class="card list-item" onclick="vista={pantalla:'ficha',id:'${esc(f.id)}',desde:'${esc(u.unidad)}',q:vista.q};render()"><div class="big">${esc(f.id)}</div>${tagTipo(f.tipo)}<div>${esc(f.nombre)}</div>${f.dobleCapa&&/^s[ií]/i.test(f.dobleCapa)?'<div class="alerta">⚠️ Lleva DOBLE CAPA</div>':''}</div>`:''}).join('');
 }
 function vFicha(p,id){const f=p.fichas.find(x=>x.id===id);if(!f)return '';
  const back=vista.desde?`vista={pantalla:'unidad',id:'${esc(vista.desde)}',q:vista.q}`:`vista={pantalla:'inicio',q:vista.q}`;
- const filas=[['Capas de drywall',f.capas],['¿Doble capa? ¿Dónde?',f.dobleCapa],['Tipo de tornillo',f.tornillo],['Patrón de tornillos',f.patron],['Metal / studs',f.metal],['Aislamiento',f.aislamiento]];
+ const filas=[['Rating de fuego',f.rating],['Capas de drywall',f.capas],['¿Doble capa? ¿Dónde?',f.dobleCapa],['Tipo de tornillo',f.tornillo],['Patrón de tornillos',f.patron],['Metal / studs',f.metal],['Aislamiento',f.aislamiento],['Número UL / GA',f.ul]];
  const enU=p.unidades.filter(u=>u.fichas.includes(f.id)).map(u=>`<span class="tag">${esc(u.unidad)}</span>`).join('');
  return `<button class="sec sm" onclick="${back};render()">← Volver</button>
- ${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – datos ficticios, NO usar en obra</div>':''}
+ ${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – no usar en obra</div>':''}
  <div class="card"><div class="big">${esc(f.id)}</div>${tagTipo(f.tipo)}<h3 style="margin-top:6px">${esc(f.nombre)}</h3>
  ${f.alerta?`<div class="alerta">⚠️ ${esc(f.alerta)}</div>`:''}
- <div class="spec">${filas.filter(r=>r[1]).map(r=>`<div>${r[0]}</div><div>${esc(r[1])}</div>`).join('')}</div>
+ <div class="spec">${filas.filter(r=>r[1]).map(r=>`<div>${r[0]}</div><div>${val(r[1])}</div>`).join('')}</div>
  ${f.notas?`<p>📝 ${esc(f.notas)}</p>`:''}
  ${enU?`<div class="mut">Se usa en:</div>${enU}`:''}
  ${(f.adj||[]).map(x=>x.tipo==='pdf'?`<p><a class="btn" style="display:inline-block;text-decoration:none" href="${x.data}" download="${esc(x.nombre)}" target="_blank">📄 Abrir ${esc(x.nombre)}</a></p>`:`<img class="adj" src="${x.data}" alt="${esc(x.nombre)}">`).join('')}
@@ -125,7 +137,7 @@ function vOficina(p){
   <p><button onclick="entrar(${tiene})">Entrar</button></p></div>`;}
  if(vista.pantalla==='editFicha')return vEditFicha(p,vista.id);
  if(vista.pantalla==='editUnidad')return vEditUnidad(p,vista.id);
- return `${p.ejemplo?'<div class="ej">⚠️ PROYECTO DE EJEMPLO – reemplázalo con datos reales</div>':''}
+ return `${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – no usar en obra · crea un proyecto nuevo con tus datos</div>':''}
  <div class="card"><h3>📁 Proyecto</h3>
  <select onchange="localStorage.setItem(LSPROJ,this.value);render()">${data.map(x=>`<option value="${x.id}" ${x.id===p.id?'selected':''}>${esc(x.nombre)}</option>`).join('')}</select>
  <label>Nombre</label><input value="${esc(p.nombre)}" onchange="proj().nombre=this.value;save();render()">
@@ -145,10 +157,10 @@ async function entrar(tiene){const v=$('pin').value.trim();if(!/^\d{4,}$/.test(v
  if(tiene){if(await sha(v)!==localStorage.getItem(LSPIN))return alert('PIN incorrecto.');}
  else{if(v!==$('pin2').value.trim())return alert('Los PIN no coinciden.');localStorage.setItem(LSPIN,await sha(v));toast('PIN creado')}
  admin=true;vista={pantalla:'inicio'};render()}
-const CAMPOS=[['id','Código (ej: A1, B2, SH1)'],['nombre','Nombre / descripción corta'],['capas','Capas de drywall'],['dobleCapa','¿Doble capa? ¿Dónde?'],['tornillo','Tipo de tornillo'],['patron','Patrón de tornillos'],['metal','Metal / studs'],['aislamiento','Aislamiento'],['alerta','Alerta importante (sale en rojo)'],['notas','Notas cortas']];
+const CAMPOS=[['id','Código (ej: A, 1H, SH2)'],['nombre','Nombre / descripción corta'],['rating','Rating de fuego (horas)'],['capas','Capas de drywall'],['dobleCapa','¿Doble capa? ¿Dónde?'],['tornillo','Tipo de tornillo'],['patron','Patrón de tornillos'],['metal','Metal / studs'],['aislamiento','Aislamiento'],['ul','Número UL / GA'],['alerta','Alerta importante (sale en rojo)'],['notas','Notas cortas']];
 function vEditFicha(p,id){const f=p.fichas.find(x=>x.id===id)||{tipo:'pared',adj:[]};
  return `<button class="sec sm" onclick="vista={pantalla:'inicio'};render()">← Volver</button>
- <div class="card"><h3>${id?'Editar ficha '+esc(id):'Nueva ficha'}</h3>
+ ${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – no usar en obra</div>':''}<div class="card"><h3>${id?'Editar ficha '+esc(id):'Nueva ficha'}</h3>
  <label>Tipo</label><select id="f_tipo">${Object.entries(TIPOS).map(([k,v])=>`<option value="${k}" ${f.tipo===k?'selected':''}>${v}</option>`).join('')}</select>
  ${CAMPOS.map(([k,l])=>`<label>${l}</label>${k==='notas'?`<textarea id="f_${k}">${esc(f[k])}</textarea>`:`<input id="f_${k}" value="${esc(f[k])}">`}`).join('')}
  <label>Fotos y PDFs</label><div id="adjs">${(f.adj||[]).map((x,i)=>`<div class="row"><span>${x.tipo==='pdf'?'📄':'🖼️'} ${esc(x.nombre)}</span><button class="red sm" style="flex:0" onclick="quitarAdj(${i})">✕</button></div>`).join('')||'<span class="mut">Sin archivos</span>'}</div>
@@ -188,7 +200,8 @@ async function compartir(){const p=proj();const c=JSON.parse(JSON.stringify(p));
  const msg='Guía de campo – '+p.nombre+': '+url;
  $('enl').innerHTML=`<textarea readonly style="margin-top:8px">${esc(url)}</textarea><div class="row" style="margin-top:8px"><button class="sm" onclick="navigator.clipboard.writeText(${esc(JSON.stringify(url))}).then(()=>toast('Copiado'))">📋 Copiar</button><a class="btn sm" style="text-align:center;text-decoration:none" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank">WhatsApp</a><a class="btn sm" style="text-align:center;text-decoration:none" href="sms:?&body=${encodeURIComponent(msg)}">SMS</a></div>`;}
 async function leerEnlace(){const m=location.hash.match(/^#p=(.+)$/);if(!m)return;
- try{const p=JSON.parse(await descomprimir(m[1]));if(!p||!p.id||!Array.isArray(p.fichas))throw 0;
+ try{let p=JSON.parse(await descomprimir(m[1]));if(!p||!p.id||!Array.isArray(p.fichas))throw 0;
+  if(p.id==='ejemplo'&&(p.ver||1)<EJ_VER)p=ejemplo();
   const i=data.findIndex(x=>x.id===p.id);if(i>=0){p.fichas.forEach(f=>{const old=data[i].fichas.find(o=>o.id===f.id);if(old)f.adj=old.adj||[]});data[i]=p}else data.push(p);
   localStorage.setItem(LSPROJ,p.id);save();toast('Proyecto recibido: '+p.nombre)}catch(e){alert('El enlace no es válido o está incompleto.')}
  history.replaceState(null,'',location.pathname)}
