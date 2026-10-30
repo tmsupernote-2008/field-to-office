@@ -43,6 +43,15 @@ mark{background:var(--acc);color:#000;border-radius:3px;padding:0 1px}.nf{color:
 .atendido{opacity:.55}
 .modulos{margin-top:22px;border-top:1px solid var(--line);padding-top:6px}.modcard{display:block;text-decoration:none;color:var(--tx);border-left:5px solid var(--acc)}.modcard .ext{float:right;color:var(--acc);font-size:14px;font-weight:700}
 .modnota{background:#10233a;border-left:5px solid #4da3ff;padding:10px;border-radius:8px;margin:8px 0}
+.stagewrap{width:100%;margin:8px 0}.stage{position:relative;margin:0 auto;background:#000;border-radius:12px;touch-action:manipulation;user-select:none;-webkit-user-select:none;border:1px solid var(--line);width:100%;height:240px}
+.stage video,.stage canvas,.stage img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;display:block;border-radius:12px}.stage .dots{position:absolute;inset:0;pointer-events:none}
+.dot{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px #000,0 2px 6px rgba(0,0,0,.7);font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;line-height:1}
+.cammsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;color:#fff;background:rgba(0,0,0,.65);font-weight:700;font-size:15px}
+.badge{position:absolute;left:8px;top:8px;background:rgba(0,0,0,.7);color:#fff;font-size:13px;font-weight:700;padding:4px 8px;border-radius:8px;pointer-events:none}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:6px 0;-webkit-overflow-scrolling:touch}.chiprep{flex:0 0 auto;background:#222;border:3px solid #444;color:var(--tx);border-radius:22px;padding:8px 12px;font-size:14px;font-weight:700}.chiprep.sel{border-color:#fff;background:#3a3a3a}
+.sw{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:5px;border:2px solid #fff;flex:0 0 auto}.sw.big{width:24px;height:24px}
+.leyrow{display:flex;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}.leyrow>div{flex:1}.pitem{padding:8px 4px;border-bottom:1px solid var(--line)}
+img.thumb{width:96px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#000}.secmarcas{border-left:5px solid #ff3b30}
 .hidden{display:none!important}#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ok);color:#000;font-weight:700;padding:10px 16px;border-radius:10px;display:none;z-index:9}
 </style>
 </head>
@@ -55,9 +64,10 @@ mark{background:var(--acc);color:#000;border-radius:3px;padding:0 1px}.nf{color:
 <main id="app"></main>
 <div id="toast"></div>
 <script src="specs.js"></script>
+<script src="marcas.js"></script>
 <script>
 /* ===== Field to Office - prototipo =====
-   Datos guardados en el teléfono (localStorage). El proyecto de ejemplo viene de documentos reales SIN nombres ni códigos; lo que falta dice "Pendiente". */
+   Datos guardados en el teléfono (localStorage; las fotos de “📸 Marcar reparaciones” en IndexedDB, ver marcas.js). El proyecto de ejemplo viene de documentos reales SIN nombres ni códigos; lo que falta dice "Pendiente". */
 const LS='fto_data_v1', LSPIN='fto_pin_hash', LSPROJ='fto_proj';
 const TIPOS={pared:'Pared / Assembly',firewall:'Fire wall',shaft:'Shaft',rc1:'RC1 channel'};
 const EJ_VER=2, PEND='Pendiente: falta en los documentos';
@@ -94,11 +104,13 @@ const $=id=>document.getElementById(id);
 function val(v){return esc(v).split(PEND).join(`<span class="pend">⏳ ${PEND}</span>`)}
 
 function render(){
+ camStop();
  const p=proj(); $('hsub').textContent=(p?p.nombre:'')+(modo==='oficina'?' · Oficina':' · Campo');
  $('btnModo').textContent=modo==='oficina'?'👷 Campo':'🏢 Oficina';
  const a=$('app'); a.innerHTML=modo==='oficina'?vOficina(p):vCampo(p); window.scrollTo(0,0);
  const q=$('q'); if(q){q.value=vista.q||'';q.oninput=()=>{vista.q=q.value;$('res').innerHTML=resultados(p,q.value)};}
  const qs=$('qs'); if(qs){qs.value=vista.qs||'';qs.oninput=()=>{vista.qs=qs.value;$('sres').innerHTML=specRes(qs.value)};}
+ despuesRender();
 }
 /* ---------- CAMPO ---------- */
 function vCampo(p){
@@ -110,6 +122,7 @@ function vCampo(p){
  if(vista.pantalla==='doc')return vDoc(vista.cid,vista.di);
  if(vista.pantalla==='form')return vForm(p,vista.tipo);
  if(vista.pantalla==='reporte')return vReporte(vista.rid);
+ const vm=rutaMarcas(p);if(vm!==null)return vm;
  const lado=vista.lado==='para'?'para':'de';
  return `${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – no usar en obra<br><span style="font-weight:600">Datos de documentos reales sin nombres. Lo que dice “Pendiente” falta en los documentos.</span></div>':''}
  ${data.length>1?`<select onchange="localStorage.setItem(LSPROJ,this.value);vista={pantalla:'inicio'};render()">${data.map(x=>`<option value="${x.id}" ${x.id===p.id?'selected':''}>${esc(x.nombre)}</option>`).join('')}</select>`:''}
@@ -124,21 +137,23 @@ function vDe(p){
  ${p.guiaCodigo?`<details class="card"><summary><b>🔢 Cómo leer el código del muro</b></summary><p>${esc(p.guiaCodigo)}</p></details>`:''}
  <label>🔎 Busca por unidad, piso o tipo de pared</label>
  <input id="q" placeholder="Ej: 201, 1 hora, fire, shaft, RC1" autocomplete="off">
- <div id="res">${resultados(p,vista.q||'')}</div>`;
+ <div id="res">${resultados(p,vista.q||'')}</div>
+ ${secMarcas(p,'de')}`;
 }
 function resultados(p,q){
  q=(q||'').toLowerCase().trim();
  const us=p.unidades.filter(u=>!q||u.unidad.toLowerCase().includes(q)||('piso '+u.piso).includes(q)||(u.piso+'fl').includes(q.replace(/\s/g,'')));
  const fs=p.fichas.filter(f=>!q||[f.id,f.nombre,TIPOS[f.tipo],f.tipo,f.rating].join(' ').toLowerCase().includes(q));
  let h='';
- if(us.length)h+=`<h3>🏠 Unidades</h3>`+us.map(u=>`<div class="card list-item" onclick="vista={pantalla:'unidad',id:'${esc(u.unidad)}',q:vista.q};render()"><div class="big">${esc(u.unidad)}</div><div class="mut">Piso ${esc(u.piso)} · ${u.fichas.length} fichas</div></div>`).join('');
+ if(us.length)h+=`<h3>🏠 Unidades</h3>`+us.map(u=>`<div class="card list-item" onclick="vista={pantalla:'unidad',id:'${esc(u.unidad)}',q:vista.q};render()"><div class="big">${esc(u.unidad)}</div><div class="mut">Piso ${esc(u.piso)} · ${u.fichas.length} fichas</div>${(n=>n?`<span class="tag mtag">📸 ${n} punto${n===1?'':'s'}</span>`:'')(ptsUnidad(p.id,u.unidad).length)}</div>`).join('');
  if(fs.length)h+=`<h3>🧱 Tipos de pared</h3>`+fs.map(f=>`<div class="card list-item" onclick="vista={pantalla:'ficha',id:'${esc(f.id)}',q:vista.q};render()"><div class="big">${esc(f.id)}</div>${tagTipo(f.tipo)}<div>${esc(f.nombre)}</div></div>`).join('');
  return h||'<div class="card mut">No se encontró nada. Prueba con otro número o tipo.</div>';
 }
 function vUnidad(p,id){const u=p.unidades.find(x=>x.unidad===id);if(!u)return '';
  return `<button class="sec sm" onclick="vista={pantalla:'inicio',q:vista.q};render()">← Volver</button>
  ${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – no usar en obra</div>':''}
- <div class="card"><div class="big">Unidad ${esc(u.unidad)}</div><div class="mut">Piso ${esc(u.piso)}</div></div>
+ <div class="card"><div class="big">${esc(uLabel(u.unidad))}</div><div class="mut">Piso ${esc(u.piso)}</div>
+ ${(pts=>`<p style="margin-bottom:0"><button id="btnMarcasUnidad" data-u="${esc(u.unidad)}" onclick="irMarcasU(this.dataset.u,'unidad')">📸 Marcar / ver reparaciones</button></p>${pts.length?`<div style="margin-top:6px">${chipsConteo(pts)}</div>`:''}`)(ptsUnidad(p.id,u.unidad))}</div>
  <h3>Paredes de esta unidad</h3>`+u.fichas.map(fid=>{const f=p.fichas.find(x=>x.id===fid);return f?`<div class="card list-item" onclick="vista={pantalla:'ficha',id:'${esc(f.id)}',desde:'${esc(u.unidad)}',q:vista.q};render()"><div class="big">${esc(f.id)}</div>${tagTipo(f.tipo)}<div>${esc(f.nombre)}</div>${f.dobleCapa&&/^s[ií]/i.test(f.dobleCapa)?'<div class="alerta">⚠️ Lleva DOBLE CAPA</div>':''}</div>`:''}).join('');
 }
 function vFicha(p,id){const f=p.fichas.find(x=>x.id===id);if(!f)return '';
@@ -200,11 +215,13 @@ const RT={
  problema:{ico:'❓',titulo:'Reportar problema / pregunta',corto:'Problema / pregunta',desc:'Algo no cuadra, falta un detalle o tienes una pregunta (RFI).',
   campos:[{k:'unidad',l:'Unidad',m:'Unidad',u:1},{k:'piso',l:'Piso',m:'Piso',num:1},{k:'texto',l:'Problema o pregunta',m:'Problema / pregunta',ta:1,req:1}]},
  tm:{ico:'🛠️',titulo:'Trabajo extra T&M',corto:'Trabajo extra T&M',desc:'Trabajo fuera del contrato (tiempo y material). Manda nota y foto el mismo día.',
-  campos:[{k:'unidad',l:'Unidad',m:'Unidad',u:1},{k:'trabajadores',l:'Trabajadores (cuántos)',m:'Trabajadores',num:1,req:1},{k:'horas',l:'Horas (opcional)',m:'Horas',num:1},{k:'texto',l:'Descripción del trabajo extra',m:'Descripción',ta:1,req:1}]},
+  /* auto:1 = no sale en el formulario; lo llena “📸 Marcar reparaciones” */
+  campos:[{k:'unidad',l:'Unidad',m:'Unidad',u:1},{k:'piso',m:'Piso',auto:1},{k:'area',m:'Área',auto:1},{k:'trabajadores',l:'Trabajadores (cuántos)',m:'Trabajadores',num:1,req:1},{k:'horas',l:'Horas (opcional)',m:'Horas',num:1},{k:'texto',l:'Descripción del trabajo extra',m:'Descripción',ta:1,req:1},
+   {k:'total',m:'Parches / puntos',auto:1},{k:'portipo',m:'Por tipo',auto:1},{k:'numeros',m:'Números',auto:1},{k:'vista',m:'Vista (foto)',auto:1}]},
  atraso:{ico:'⏱️',titulo:'Atraso',corto:'Atraso',desc:'Algo te está atrasando: di la causa y qué efecto tiene.',
   campos:[{k:'unidad',l:'Unidad / área (opcional)',m:'Unidad / área',u:1},{k:'causa',l:'Causa (¿por qué hay atraso?)',m:'Causa',ta:1,req:1},{k:'efecto',l:'Efecto (¿qué se atrasa y cuánto?)',m:'Efecto',ta:1,req:1}]}
 };
-const RT_OTRO={ico:'📝',corto:'Nota libre'};
+const RT_OTRO={ico:'📝',corto:'Nota libre'}, HMAX=200;
 function rt(t){return RT[t]||RT_OTRO}
 function lsGet(k){try{const v=JSON.parse(localStorage.getItem(k));return Array.isArray(v)?v:[]}catch(e){return []}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
@@ -212,19 +229,20 @@ function fechaTxt(d){const z=n=>String(n).padStart(2,'0');return `${z(d.getDate(
 function nuevoId(){const d=new Date(),z=n=>String(n).padStart(2,'0');return 'FTO-'+String(d.getFullYear()).slice(2)+z(d.getMonth()+1)+z(d.getDate())+'-'+z(d.getHours())+z(d.getMinutes())+'-'+Math.random().toString(36).slice(2,5).toUpperCase()}
 function msgTexto(r){const d=rt(r.tipo),L=['📋 FIELD TO OFFICE – PARA LA OFICINA','Tipo: '+d.corto,'Proyecto: '+r.proyecto,'Fecha: '+r.fecha];
  (d.campos||[]).forEach(c=>{const v=(r.campos||{})[c.k];if(v)L.push(c.m+': '+v)});
- L.push('Foto: '+(r.img?'Sí (va adjunta)':'No'));if(r.nombre)L.push('Reporta: '+r.nombre);L.push('ID: '+r.id);return L.join('\n')}
+ L.push('Foto: '+(r.img||(r.vistas&&r.vistas.length)?'Sí (va adjunta)'+(r.vistas&&r.vistas.length?' – con los puntos de colores':''):'No'));if(r.nombre)L.push('Reporta: '+r.nombre);L.push('ID: '+r.id);return L.join('\n')}
 function resumen(r){const c=r.campos||{};return (c.texto||c.causa||'').slice(0,90)}
 let fotoTemp=null;
 function vPara(p){const h=lsGet(LSENV);
  return `<div class="mut dirnota" id="notaPara">Lo que tú mandas a la oficina. Llena el formulario, crea el mensaje y compártelo por WhatsApp, SMS o correo. No hay servidor: el historial se queda solo en este teléfono.</div>
  ${Object.entries(RT).map(([k,t])=>`<div class="card list-item rform" data-t="${k}" onclick="abrirForm('${k}')"><div class="big">${t.ico} ${esc(t.titulo)}</div><div class="mut">${esc(t.desc)}</div></div>`).join('')}
+ ${secMarcas(p,'para')}
  <h3>🕘 Historial en este teléfono</h3>
- ${h.length?h.map(r=>`<div class="card list-item hist" onclick="vista={pantalla:'reporte',rid:'${esc(r.id)}',lado:'para'};render()"><b>${rt(r.tipo).ico} ${esc(rt(r.tipo).corto)}</b>${r.campos&&r.campos.unidad?` <span class="tag">${esc(r.campos.unidad)}</span>`:''}${r.img?' <span class="tag">📷</span>':''} ${r.compartido?'<span class="tag okt">Compartido ✓</span>':'<span class="tag pen">Sin compartir</span>'}<div class="mut">${esc(r.fecha)} · ${esc(r.id)}</div><div class="snip">${esc(resumen(r))}</div></div>`).join('')+`<button class="sec sm" onclick="borrarHist()">🗑️ Borrar historial</button>`:'<div class="card mut" id="histVacio">Todavía no has mandado nada desde este teléfono.</div>'}`}
+ ${h.length?h.map(r=>`<div class="card list-item hist" onclick="vista={pantalla:'reporte',rid:'${esc(r.id)}',lado:'para'};render()"><b>${rt(r.tipo).ico} ${esc(rt(r.tipo).corto)}</b>${r.campos&&r.campos.unidad?` <span class="tag">${esc(r.campos.unidad)}</span>`:''}${r.img?' <span class="tag">📷</span>':''}${r.auto==='marcas'?` <span class="tag mtag">📸 ${esc(r.campos.total)} punto${r.campos.total==='1'?'':'s'}</span>`:''} ${r.compartido?'<span class="tag okt">Compartido ✓</span>':'<span class="tag pen">Sin compartir</span>'}<div class="mut">${esc(r.fecha)} · ${esc(r.id)}</div><div class="snip">${esc(resumen(r))}</div></div>`).join('')+`<button class="sec sm" onclick="borrarHist()">🗑️ Borrar historial</button>`:'<div class="card mut" id="histVacio">Todavía no has mandado nada desde este teléfono.</div>'}`}
 function abrirForm(t){fotoTemp=null;vista={pantalla:'form',tipo:t,lado:'para'};render()}
 function vForm(p,t){const d=RT[t];if(!d){vista={pantalla:'inicio',lado:'para'};return vCampo(p)}
  return `<button class="sec sm" onclick="vista={pantalla:'inicio',lado:'para'};render()">← Volver</button>
  <div class="card" id="rform"><h3>${d.ico} ${esc(d.titulo)}</h3><div class="mut">⬆️ Para la oficina · Proyecto: ${esc(p.nombre)}</div>
- ${d.campos.map(c=>`<label for="r_${c.k}">${esc(c.l)}${c.req?' *':''}</label>${c.ta?`<textarea id="r_${c.k}"></textarea>`:`<input id="r_${c.k}" autocomplete="off"${c.num?' inputmode="numeric"':''}${c.u?' list="unidadesList" oninput="autoPiso(this.value)"':''}>`}`).join('')}
+ ${d.campos.filter(c=>!c.auto).map(c=>`<label for="r_${c.k}">${esc(c.l)}${c.req?' *':''}</label>${c.ta?`<textarea id="r_${c.k}"></textarea>`:`<input id="r_${c.k}" autocomplete="off"${c.num?' inputmode="numeric"':''}${c.u?' list="unidadesList" oninput="autoPiso(this.value)"':''}>`}`).join('')}
  <datalist id="unidadesList">${p.unidades.map(u=>`<option value="${esc(u.unidad)}">`).join('')}</datalist>
  <label for="r_foto">📷 Foto (opcional)</label><input type="file" id="r_foto" accept="image/*" onchange="tomarFoto(this)"><div id="fprev"></div>
  <label for="r_nombre">Tu nombre (opcional, se recuerda en este teléfono)</label><input id="r_nombre" value="${esc(localStorage.getItem(LSNOM)||'')}">
@@ -236,10 +254,10 @@ async function tomarFoto(inp){const f=inp.files&&inp.files[0];if(!f)return;try{f
 function guardarHist(h){/* si no cabe, quita fotos de los reportes más viejos */
  if(lsSet(LSENV,h))return true;for(let i=h.length-1;i>0;i--){if(h[i].img){delete h[i].img;h[i].fotoQuitada=1;if(lsSet(LSENV,h))return true}}return false}
 function crearReporte(t){const d=RT[t],p=proj(),c={};
- for(const x of d.campos){c[x.k]=$('r_'+x.k).value.trim();if(x.req&&!c[x.k]){alert('Falta: '+x.l);$('r_'+x.k).focus();return}}
+ for(const x of d.campos.filter(c=>!c.auto)){c[x.k]=$('r_'+x.k).value.trim();if(x.req&&!c[x.k]){alert('Falta: '+x.l);$('r_'+x.k).focus();return}}
  const nombre=$('r_nombre').value.trim();try{localStorage.setItem(LSNOM,nombre)}catch(e){}
  const now=new Date(),r={id:nuevoId(),tipo:t,ts:now.getTime(),fecha:fechaTxt(now),proyecto:p.nombre,campos:c,nombre,compartido:false};if(fotoTemp)r.img=fotoTemp;
- const h=lsGet(LSENV);h.unshift(r);if(h.length>50)h.length=50;
+ const h=lsGet(LSENV);h.unshift(r);if(h.length>HMAX)h.length=HMAX;
  if(!guardarHist(h)){delete r.img;if(!guardarHist(h))toast('No hay espacio para guardar el historial');else alert('El teléfono no tiene espacio para guardar la foto en el historial. El mensaje sí se creó; adjunta la foto a mano.')}
  fotoTemp=null;vista={pantalla:'reporte',rid:r.id,lado:'para'};render();toast('Mensaje creado')}
 function repById(id){return lsGet(LSENV).find(x=>x.id===id)}
@@ -249,16 +267,16 @@ function vReporte(id){const r=repById(id);if(!r){vista={pantalla:'inicio',lado:'
  <div class="card" id="reporte"><b>${d.ico} ${esc(d.corto)}</b> <span id="estadoComp" class="tag ${r.compartido?'okt':'pen'}">${r.compartido?'Compartido ✓':'Sin compartir'}</span>
  <div class="mut">Este es el mensaje para la oficina. Mándalo con uno de los botones.</div>
  <div class="doc" id="msgtxt">${esc(txt)}</div>
- ${r.img?`<img class="adj" src="${r.img}" alt="foto del reporte">`:''}${r.fotoQuitada?'<div class="mut">La foto se quitó del historial por falta de espacio.</div>':''}
+ ${r.img?`<img class="adj" src="${r.img}" alt="foto del reporte">`:''}${r.vistas&&r.vistas.length?repFotosHTML(r):''}${r.fotoQuitada?'<div class="mut">La foto se quitó del historial por falta de espacio.</div>':''}
  <div class="share">
-  <button id="btnShare" onclick="compartirRep('${esc(r.id)}')">📤 Compartir${r.img?' con foto':''}</button>
+  <button id="btnShare" onclick="compartirRep('${esc(r.id)}')">📤 Compartir${r.img||(r.vistas&&r.vistas.length)?' con foto':''}</button>
   <a class="btn" id="lnkWa" href="https://wa.me/?text=${encodeURIComponent(txt)}" target="_blank" onclick="marcarComp('${esc(r.id)}')">WhatsApp</a>
   <a class="btn" id="lnkSms" href="sms:?&body=${encodeURIComponent(txt)}" onclick="marcarComp('${esc(r.id)}')">💬 SMS</a>
   <a class="btn" id="lnkMail" href="mailto:?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(txt)}" onclick="marcarComp('${esc(r.id)}')">✉️ Correo</a>
   <button class="sec" id="btnCopiar" onclick="copiar(repTxt('${esc(r.id)}')).then(ok=>{toast(ok?'Mensaje copiado':'No se pudo copiar');if(ok)marcarComp('${esc(r.id)}')})">📋 Copiar</button>
   ${r.img?`<a class="btn sec" style="background:#333;color:#fff" id="lnkFoto" href="${r.img}" download="foto-${esc(r.id)}.jpg">⬇️ Guardar foto</a>`:''}
  </div>
- ${r.img?'<p class="mut">“Compartir con foto” manda texto y foto juntos si el teléfono lo permite. Con WhatsApp (enlace), SMS, correo o Copiar va solo el texto: adjunta la foto a mano.</p>':''}
+ ${r.img||(r.vistas&&r.vistas.length)?'<p class="mut">“Compartir con foto” manda texto y foto juntos si el teléfono lo permite. Con WhatsApp (enlace), SMS, correo o Copiar va solo el texto: adjunta la foto a mano.</p>':''}
  <p><button class="red sm" onclick="borrarRep('${esc(r.id)}')">🗑️ Borrar del historial</button></p></div>`}
 function repTxt(id){const r=repById(id);return r?msgTexto(r):''}
 function marcarComp(id){const h=lsGet(LSENV),r=h.find(x=>x.id===id);if(r&&!r.compartido){r.compartido=true;r.compartidoTs=Date.now();lsSet(LSENV,h)}
@@ -269,6 +287,7 @@ function dataFile(u,n){const [h,b]=u.split(','),bin=atob(b),a=new Uint8Array(bin
 async function compartirRep(id){const r=repById(id);if(!r)return;const txt=msgTexto(r);
  if(navigator.share){const o={title:'Field to Office – '+rt(r.tipo).corto,text:txt};let sinFoto=false;
   if(r.img){const f=dataFile(r.img,'foto-'+r.id+'.jpg');if(navigator.canShare&&navigator.canShare({files:[f]}))o.files=[f];else sinFoto=true}
+  else if(r.vistas&&r.vistas.length){const fs=(REPF[r.id]||await archivosRep(r)).map(x=>x.file);if(fs.length&&navigator.canShare&&navigator.canShare({files:fs}))o.files=fs;else sinFoto=true}
   try{await navigator.share(o);marcarComp(id);if(sinFoto)toast('Este teléfono no manda la foto aquí: usa ⬇️ Guardar foto');return}catch(e){if(e&&e.name==='AbortError')return}}
  const ok=await copiar(txt);toast(ok?'Texto copiado: pégalo en WhatsApp, SMS o correo':'No se pudo copiar: usa SMS o Correo');if(ok)marcarComp(id)}
 function borrarRep(id){if(!confirm('¿Borrar este reporte del historial de este teléfono?'))return;lsSet(LSENV,lsGet(LSENV).filter(x=>x.id!==id));vista={pantalla:'inicio',lado:'para'};render()}
@@ -316,7 +335,7 @@ function vRecibido(){const R=lsGet(LSREC).slice().sort((a,b)=>(a.atendido-b.aten
  <label for="rec_txt">Pega aquí el texto recibido (puedes pegar varios juntos)</label><textarea id="rec_txt" style="min-height:110px" placeholder="📋 FIELD TO OFFICE – PARA LA OFICINA&#10;Tipo: …&#10;Unidad: …"></textarea>
  <p><button id="btnImportar" onclick="importarRec()">➕ Agregar a la lista</button></p></div>
  <h3>📋 Recibidos (${R.length}${R.length?' · '+R.filter(r=>!r.atendido).length+' pendientes':''})</h3>
- ${R.length?R.map(r=>{const d=rt(r.tipo);return `<div class="card recitem${r.atendido?' atendido':''}" data-id="${esc(r.id)}"><b>${d.ico} ${esc(d.corto)}</b> ${r.atendido?'<span class="tag okt">Atendido ✓</span>':'<span class="tag pen">Pendiente</span>'}${r.foto?' <span class="tag">📷 foto en el mensaje</span>':''}
+ ${R.length?R.map(r=>{const d=rt(r.tipo);return `<div class="card recitem${r.atendido?' atendido':''}" data-id="${esc(r.id)}"><b>${d.ico} ${esc(d.corto)}</b> ${r.atendido?'<span class="tag okt">Atendido ✓</span>':'<span class="tag pen">Pendiente</span>'}${r.foto?' <span class="tag">📷 foto en el mensaje</span>':''}${r.pares.some(p=>p[0]==='Parches / puntos')?' <span class="tag mtag">📸 marcas con cámara</span>':''}
   <div class="mut">${[r.proyecto,r.fecha,r.nombre&&('Reporta: '+r.nombre),r.id].filter(Boolean).map(esc).join(' · ')}</div>
   <div class="spec">${r.pares.map(p=>`<div>${esc(p[0])}</div><div style="white-space:pre-wrap">${esc(p[1])}</div>`).join('')}</div>
   <div class="row" style="margin-top:10px"><button class="sec sm" onclick="toggleRec('${esc(r.id)}')">${r.atendido?'↩️ Volver a pendiente':'✓ Marcar atendido'}</button><button class="red sm" style="flex:0" onclick="borrarRec('${esc(r.id)}')">🗑️</button></div></div>`}).join(''):'<div class="card mut" id="recVacio">Todavía no hay nada recibido en esta lista.</div>'}`}
