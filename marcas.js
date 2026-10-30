@@ -158,7 +158,7 @@ function vMarcar(p){if(!esSuper()){vista={pantalla:'marcas',lado:vista.lado};ret
  <div class="row" style="margin-top:8px"><button class="sec" id="btnUndo" onclick="undoPunto()">↩️ Deshacer</button><button class="sec" id="btnVivo" onclick="volverVivo()">▶️ En vivo</button></div>
  <p><button id="btnGuardarVista" style="width:100%" onclick="guardarVista()">💾 Guardar vista</button></p>
  <div id="pendList"></div>
- <label class="btn sec" style="display:block;text-align:center;background:#333;color:#fff;margin-top:10px">📁 Usar una foto (si la cámara en vivo no abre)<input type="file" id="m_foto" accept="image/*" capture="environment" class="hidden" onchange="fotoMarcar(this)"></label>
+ <label class="btn sec" style="display:flex;margin-top:10px">📁 Usar una foto (si la cámara en vivo no abre)<input type="file" id="m_foto" accept="image/*" capture="environment" class="hidden" onchange="fotoMarcar(this)"></label>
  <div class="modnota">${NOTA_AR}</div>`}
 function selTipo(t){CAM.tipo=t;document.querySelectorAll('#leyMarcar .chiprep').forEach(b=>b.classList.toggle('sel',b.dataset.t===t));const x=tipoRep(t);$('tipoInfo').textContent=x.quien||''}
 function pendNums(){const p=proj(),s=seqGet(p.id);return CAM.pend.map((x,i)=>({...x,num:s+i+1,cod:cod(s+i+1)}))}
@@ -215,7 +215,7 @@ const REPF={};
 async function archivosRep(r){if(REPF[r.id])return REPF[r.id];const out=[];for(const cid of (r.vistas||[])){try{const b=await fotoConPuntos(cid,r.pts);if(b)out.push({cid,blob:b,file:new File([b],'marcas-'+cid+'.jpg',{type:'image/jpeg'})})}catch(e){}}return REPF[r.id]=out}
 function repFotosHTML(r){return `<div id="repFotos" data-rid="${esc(r.id)}"><div class="mut">Cargando foto con puntos…</div></div><p><button class="sec sm" id="btnVerPuntos" onclick="abrirCap('${esc((r.vistas||[])[0]||'')}','foto')">📸 Ver los puntos</button></p>`}
 async function llenarRepFotos(){const d=$('repFotos');if(!d)return;const r=repById(d.dataset.rid);if(!r)return;delete REPF[r.id];const fs=await archivosRep(r);if(!$('repFotos'))return;
- d.innerHTML=fs.length?fs.map((f,i)=>{const u=URL.createObjectURL(f.blob);return `<img class="adj repfoto" src="${u}" alt="foto con puntos"><p><a class="btn sec lnkFotoM" style="display:inline-block;text-decoration:none;background:#333;color:#fff" href="${u}" download="${esc(f.file.name)}">⬇️ Guardar foto ${fs.length>1?i+1:''}</a></p>`}).join(''):'<div class="mut">La foto de esta vista ya no está en el teléfono.</div>'}
+ d.innerHTML=fs.length?fs.map((f,i)=>{const u=URL.createObjectURL(f.blob);return `<img class="adj repfoto" src="${u}" alt="foto con puntos"><p><a class="btn sec lnkFotoM"  href="${u}" download="${esc(f.file.name)}">⬇️ Guardar foto ${fs.length>1?i+1:''}</a></p>`}).join(''):'<div class="mut">La foto de esta vista ya no está en el teléfono.</div>'}
 
 /* ---- pantalla: VER (cámara en vivo + foto guía + puntos) o foto fija ---- */
 function vCap(p,cid,m){const c=capById(cid);if(!c){vista={pantalla:'marcas',lado:vista.lado};return vMarcas(p)}const cam=m!=='foto';
@@ -228,7 +228,7 @@ function vCap(p,cid,m){const c=capById(cid);if(!c){vista={pantalla:'marcas',lado
  ${cam?guiaBarHTML(c)+guiaCtlHTML(c):''}
  ${cam?`<div class="card" id="ghostCtl"><label style="color:var(--tx);margin:0"><input type="checkbox" id="ghostOn" style="width:auto" ${on?'checked':''} onchange="vista.ghost=this.checked;$('ghost').classList.toggle('hidden',!this.checked)"> Mostrar foto guía</label>
   <label for="ghostOp">Transparencia de la foto guía: <b id="opVal">${op}%</b></label><input type="range" id="ghostOp" min="0" max="100" step="5" value="${op}" oninput="vista.op=+this.value;$('ghost').style.opacity=this.value/100;$('opVal').textContent=this.value+'%'"></div>`
- :`<p><a class="btn sec" id="lnkCapFoto" style="display:inline-block;text-decoration:none;background:#333;color:#fff">⬇️ Guardar foto con puntos</a></p>`}
+ :`<p><a class="btn sec" id="lnkCapFoto" >⬇️ Guardar foto con puntos</a></p>`}
  ${vista.nuevo?`<div class="card" id="guardadoOk" style="border-color:var(--ok)"><b>✅ Vista guardada</b><div class="mut">Se creó el T&M en “⬆️ Para la oficina”.</div><p><button class="sm" id="btnIrTM" onclick="verTMCap('${esc(c.id)}')">🛠️ Ver y mandar el T&M</button></p></div>`:''}
  <div class="card" id="capCard"><div class="big">${esc(uLabel(c.unidad))}${c.area?' · '+esc(c.area):''}</div><div class="mut">${c.piso?'Piso '+esc(c.piso)+' · ':''}${esc(c.fecha)}${c.nombre?' · 📷 '+esc(c.nombre):''} · ${esc(c.id)}</div>${c.nota?`<div id="capNota">📝 ${esc(c.nota)}</div>`:''}<div class="mut" id="capOri">${c.ori?'🧭 Dirección guardada'+(c.ori.abs?' (con brújula)':' (sin brújula)'):'🧭 Sin dirección guardada: solo foto guía'}</div><div style="margin-top:6px">${chipsConteo(c.puntos)}</div></div>
  <h3>📍 Puntos (${c.puntos.length})</h3>${c.puntos.map(x=>{const t=ptTipo(x);return `<div class="pitem" data-cod="${esc(x.cod)}"><span class="sw" style="background:${esc(t.color)}"></span><b>${esc(x.cod)}</b> ${esc(t.nombre)}${cam?`<button class="sec sm" style="float:right;padding:3px 9px" onclick="guiaSel('${esc(x.cod)}');$('stage').scrollIntoView({block:'center'})">🧭 Guiar</button>`:''}</div>`}).join('')}

@@ -20,7 +20,7 @@ Guía de campo de drywall para supers y foremen. Lado oficina (con PIN) para car
 - **Tipos** editables (nombre, color, quién/qué es). De fábrica: Parche drywall, Electricista (alrededor de enchufes/luces), Plomero, Fire sprinkler, Esquina/bead, Otro.
 - **T&M automático** (sin precios) en el historial de “⬆️ Para la oficina”, con el mismo formato del reporte *Trabajo extra T&M* y los botones de compartir; se puede agrupar por vista, por punto o por unidad y día. Al pegarlo en “⬇️ Recibido del campo” salen todos los campos.
 - **Límite**: no es AR de verdad (una PWA no puede anclar puntos en la pared; WebXR no existe en Safari de iPhone). Se alinea a ojo con la foto guía.
-- Datos: lista de vistas en localStorage; fotos en IndexedDB (solo en ese teléfono). Cache del service worker: ver abajo (`fto-v8`).
+- Datos: lista de vistas en localStorage; fotos en IndexedDB (solo en ese teléfono). Cache del service worker: ver abajo (`fto-v9`).
 
 **🧭 Guiar a marca con flechas** (rama `flechas-guia`, código en `guia.js`): en “👁️ Ver con cámara”.
 - Al marcar, si el teléfono da los sensores de orientación (DeviceOrientationEvent; en iPhone hay que tocar “🧭 Activar sensores”), se guarda hacia dónde apuntaba el teléfono y el rumbo/inclinación de cada punto (campo de visión de la cámara aproximado: 64° del lado largo).
@@ -40,3 +40,8 @@ Guía de campo de drywall para supers y foremen. Lado oficina (con PIN) para car
   - Del PIN solo se guarda en localStorage un hash **PBKDF2-SHA-256** (150 000 vueltas, sal aleatoria de 16 bytes), nunca el PIN. Es distinto del PIN de 🏢 Oficina.
 - **Límite honesto**: el PIN es un **candado de este teléfono** para que nadie marque, edite o borre por accidente; **no es seguridad completa** (quien tenga el teléfono puede borrar los datos del sitio o usar herramientas del navegador, y quien cree el PIN primero queda como Super). Permisos de verdad por persona, como los issues de Autodesk, necesitan un servidor con cuentas: **no está hecho**. Si olvidan el PIN no hay forma de recuperarlo en la app (solo borrando los datos del sitio, lo que borra también las marcas del teléfono).
 - Las marcas guardadas antes siguen funcionando igual (ver, buscar, guiar). Los formularios de “⬆️ Para la oficina” (Reportar problema, Trabajo extra T&M, Atraso) no cambian. Sin red: todo queda en el teléfono.
+
+**🎨 Diseño y tema** (rama `diseno-pro`; cache del service worker: `fto-v9`, ahora con `tema.js`):
+- Sistema de diseño con variables CSS: paleta común con Firmax (naranja principal `#ff6b00`, azul `#0a66ff`, verde `#0e8a3e`, amarillo `#f5b700`, rojo `#e0281c`), botones grandes (≥48 px) con estilos principal / secundario / peligro y estados de pulsado, tarjetas con sombra suave, encabezado y pestañas fijos, márgenes seguros (notch).
+- Tema 🌓 Automático (sigue al teléfono), ☀️ Claro o 🌙 Oscuro: botón en el encabezado; se guarda en localStorage (`tema_v1`). `tema.js` es el mismo archivo en ambas apps.
+- Los colores de los tipos de marca no cambian (siguen siendo distinguibles).
