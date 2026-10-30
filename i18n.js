@@ -66,7 +66,7 @@ function walk(root){if(!root)return;if(root.nodeType===3){if(!inSkip(root))doTex
   for(var c=e.lastChild;c;c=c.previousSibling){if(c.nodeType===3)doText(c);else if(c.nodeType===1)st.push(c)}}}
 function retranslate(){/* vuelve a traducir desde el español guardado */
  var all=document.querySelectorAll('*');
- for(var i=0;i<all.length;i++){var e=all[i];if(e._esA){for(var a in e._esA){var r=tr(e._esA[a]);e._trA[a]=r;e.setAttribute(a,r)}}
+ for(var i=0;i<all.length;i++){var e=all[i];if(e._esA&&!inSkip(e)){for(var a in e._esA){var r=tr(e._esA[a]);e._trA[a]=r;e.setAttribute(a,r)}}
   for(var c=e.firstChild;c;c=c.nextSibling)if(c.nodeType===3&&c._es!==undefined){var r2=tr(c._es);c._tr=r2;c.data=r2}}
  walk(document.documentElement);var tt=document.querySelector('title');if(tt)document.title=tr(tt._es||(tt._es=document.title))}
 var mo=new MutationObserver(function(recs){for(var i=0;i<recs.length;i++){var r=recs[i];
@@ -96,8 +96,8 @@ function ensurePop(){if(pop)return pop;pop=document.createElement('div');pop.cla
 function openPicker(){var p=ensurePop();
  p.innerHTML='<div class="in"><h4>🌐 '+t('Idioma')+(lang==='en'?'':' / Language')+'</h4>'+LANGS.map(function(l){return '<button type="button" data-lang="'+l+'" lang="'+l+'" class="'+(l===lang?'on':'')+'"><span>'+NAMES[l]+'</span><small>'+(l===lang?'✔':l.toUpperCase())+'</small></button>'}).join('')+'</div>';
  p.classList.add('open');var b=p.querySelector('button.on');if(b)b.focus()}
-function upd(b){var s=t('Idioma')+' / Language: '+NAMES[lang];b._trA=b._trA||{};b._esA=b._esA||{};b._esA['aria-label']=b._esA.title=s;b.setAttribute('aria-label',s);b.title=s;b._trA['aria-label']=b._trA.title=s;b.setAttribute('data-lang',lang)}
-function button(cls){var b=document.createElement('button');b.type='button';b.className='i18nBtn'+(cls?' '+cls:'');b.id='langBtn';b.textContent='🌐';b.onclick=openPicker;upd(b);return b}
+function upd(b){var s=t('Idioma')+' / Language: '+NAMES[lang];b.setAttribute('aria-label',s);b.title=s;b.setAttribute('data-lang',lang)}
+function button(cls){var b=document.createElement('button');b.type='button';b.className='i18nBtn'+(cls?' '+cls:'');b.id='langBtn';b.setAttribute('data-noi18n','');b.textContent='🌐';b.onclick=openPicker;upd(b);return b}
 (function(){var st=document.createElement('style');st.textContent=css;(document.head||document.documentElement).appendChild(st)})();
 /* pone el botón donde haya [data-i18n-slot] (en el encabezado, al lado del 🌓) */
 function mount(){[].forEach.call(document.querySelectorAll('[data-i18n-slot]'),function(s){if(!s.querySelector('.i18nBtn'))s.appendChild(button(s.getAttribute('data-i18n-slot')))})}

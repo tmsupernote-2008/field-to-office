@@ -20,7 +20,7 @@ Guía de campo de drywall para supers y foremen. Lado oficina (con PIN) para car
 - **Tipos** editables (nombre, color, quién/qué es). De fábrica: Parche drywall, Electricista (alrededor de enchufes/luces), Plomero, Fire sprinkler, Esquina/bead, Otro.
 - **T&M automático** (sin precios) en el historial de “⬆️ Para la oficina”, con el mismo formato del reporte *Trabajo extra T&M* y los botones de compartir; se puede agrupar por vista, por punto o por unidad y día. Al pegarlo en “⬇️ Recibido del campo” salen todos los campos.
 - **Límite**: no es AR de verdad (una PWA no puede anclar puntos en la pared; WebXR no existe en Safari de iPhone). Se alinea a ojo con la foto guía.
-- Datos: lista de vistas en localStorage; fotos en IndexedDB (solo en ese teléfono). Cache del service worker: ver abajo (`fto-v9`).
+- Datos: lista de vistas en localStorage; fotos en IndexedDB (solo en ese teléfono). Cache del service worker: ver abajo (`fto-v10`).
 
 **🧭 Guiar a marca con flechas** (rama `flechas-guia`, código en `guia.js`): en “👁️ Ver con cámara”.
 - Al marcar, si el teléfono da los sensores de orientación (DeviceOrientationEvent; en iPhone hay que tocar “🧭 Activar sensores”), se guarda hacia dónde apuntaba el teléfono y el rumbo/inclinación de cada punto (campo de visión de la cámara aproximado: 64° del lado largo).
@@ -45,3 +45,14 @@ Guía de campo de drywall para supers y foremen. Lado oficina (con PIN) para car
 - Sistema de diseño con variables CSS: paleta común con Firmax (naranja principal `#ff6b00`, azul `#0a66ff`, verde `#0e8a3e`, amarillo `#f5b700`, rojo `#e0281c`), botones grandes (≥48 px) con estilos principal / secundario / peligro y estados de pulsado, tarjetas con sombra suave, encabezado y pestañas fijos, márgenes seguros (notch).
 - Tema 🌓 Automático (sigue al teléfono), ☀️ Claro o 🌙 Oscuro: botón en el encabezado; se guarda en localStorage (`tema_v1`). `tema.js` es el mismo archivo en ambas apps.
 - Los colores de los tipos de marca no cambian (siguen siendo distinguibles).
+
+**🌐 Idiomas, carpetas por oficio, búsqueda y fotos** (rama `traducir`; cache del service worker: `fto-v10`):
+- Botón 🌐 al lado de 🌓: traduce TODA la app (pantallas, avisos, alert/confirm/prompt) a Español, English, Português, Kreyòl ayisyen, Français, Русский, Українська. Se guarda en el teléfono (`localStorage` `fto_idioma`). La primera vez usa el idioma del teléfono si es uno de los 7; si no, español. El dictado 🎤 usa el mismo idioma (es-US, en-US, pt-BR, ht-HT, fr-FR, ru-RU, uk-UA).
+- Código: `i18n.js` (motor) + `i18n_dic.js` (diccionario, clave = texto en español). No traduce lo que escribe el usuario ni lo marcado con `data-noi18n`. Ids y selectores no cambian. Depurar: `localStorage.fto_i18n_debug='1'` muestra `I18N-MISS:` en la consola.
+- Carpetas de especificaciones en orden de obra y numeradas en todos los idiomas: 1 Framing, 2 Insulación (una sola carpeta), 3 Instalación de drywall, 4 Acabado, 5 Pintura; después Paredes fire rated 2 h. Cada carpeta tiene sus propios códigos (secciones, normas, hojas) para tocar y buscar.
+- Contenido de carpetas traducido en `specs_en.js`, `specs_pt.js`, `specs_ht.js`, `specs_fr.js`, `specs_ru.js`, `specs_uk.js`: se bajan solo al escoger ese idioma y el service worker los guarda para usar sin conexión. Traducción fiel (no resumen); códigos, normas, medidas y números de hoja quedan iguales. Arriba de las carpetas sale la nota: la traducción es una ayuda, manda el original en inglés. Si falta una traducción se ve el texto base con la etiqueta “Sin traducir”. Traducciones escritas a mano, sin servicios de traducción automática.
+- Búsqueda: en todas las carpetas y dentro de la carpeta/documento abierto, con resaltado, en el idioma escogido (también por códigos y pies de foto).
+- 🖼️ Fotos en cada sección (`specfotos.js`): cámara o galería, se guardan en IndexedDB (`fto_spec_fotos`) como JPEG de máx. 1200 px; miniaturas, tocar para agrandar, pie de foto. Solo Super/GC (roles.js) agrega, cambia el pie o borra; todos las ven. Van en el respaldo de la oficina (formato 2) y se restauran al importarlo.
+- Revisar con hablante nativo: **Kreyòl ayisyen (ht), Русский (ru), Українська (uk)** (en, pt, fr también conviene revisarlos en obra).
+- Limitaciones: el enlace para compartir no lleva fotos; las fotos quedan solo en el teléfono (y en el respaldo); cada idioma de carpetas necesita una visita con conexión para quedar guardado; el dictado en kreyòl depende del navegador (muchos no lo soportan); las traducciones son ayuda, manda el original en inglés.
+- Al cambiar `specs.js`, actualizar los textos traducidos y volver a generar los `specs_<idioma>.js` (y subir `SPECS_VER`).

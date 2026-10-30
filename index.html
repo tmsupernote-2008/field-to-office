@@ -163,7 +163,7 @@ header button{min-height:44px;padding:8px 8px;font-size:13.5px;flex:0 0 auto;mar
 .temaSlot,.i18nSlot{display:contents}
 header .i18nBtn{width:40px;min-width:40px;height:44px;min-height:44px;padding:0!important;font-size:19px;margin:0}
 /* con 🌐 hay un botón más arriba: en teléfonos angostos se quita el logo y el subtítulo para que el título quepa en una sola fila */
-@media (max-width:440px){header{gap:5px}header>div:first-child{display:none}header h1{font-size:14.5px;line-height:1.1}header h1 small{display:none}}
+@media (max-width:440px){header{gap:5px}header>div:first-child{display:none}header h1{font-size:14.5px;line-height:1.1}header h1 small{display:none}header h1{min-width:58px}header .rolb{max-width:118px;overflow:hidden;text-overflow:ellipsis}}
 /* 🌐 carpetas: etapas, códigos, fotos (fto-v10) */
 .etn{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:999px;background:var(--acc);color:var(--on-acc);font-weight:900;font-size:17px;margin-right:4px}
 .carpeta.otra .etn{background:var(--sec);color:var(--sec-tx)}
