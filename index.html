@@ -37,6 +37,10 @@ img.adj{max-width:100%;border-radius:10px;margin-top:8px;border:1px solid var(--
 mark{background:var(--acc);color:#000;border-radius:3px;padding:0 1px}.nf{color:var(--warn);font-weight:700}
 .faltan{background:#2e2700;border:2px dashed var(--warn);border-radius:12px;padding:12px;margin:10px 0}.faltan h3{color:var(--warn);margin:0 0 6px}
 .snip{font-size:13px;color:var(--mut);margin-top:4px;overflow-wrap:anywhere}
+.tabs.dir{margin:10px 0 6px}.tabs.dir button{padding:12px 6px;font-size:15px}.tabs button.off{background:#333;color:var(--tx)}
+.dirnota{margin:0 2px 8px}.tag.okt{background:#123d26;color:#a6f0c6}.tag.pen{background:#3d3100;color:#ffe48a}
+.share{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.share>*{text-align:center;text-decoration:none}
+.atendido{opacity:.55}
 .hidden{display:none!important}#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ok);color:#000;font-weight:700;padding:10px 16px;border-radius:10px;display:none;z-index:9}
 </style>
 </head>
@@ -102,8 +106,17 @@ function vCampo(p){
  if(vista.pantalla==='carpetas')return vCarpetas();
  if(vista.pantalla==='carpeta')return vCarpeta(vista.cid);
  if(vista.pantalla==='doc')return vDoc(vista.cid,vista.di);
+ if(vista.pantalla==='form')return vForm(p,vista.tipo);
+ if(vista.pantalla==='reporte')return vReporte(vista.rid);
+ const lado=vista.lado==='para'?'para':'de';
  return `${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – no usar en obra<br><span style="font-weight:600">Datos de documentos reales sin nombres. Lo que dice “Pendiente” falta en los documentos.</span></div>':''}
  ${data.length>1?`<select onchange="localStorage.setItem(LSPROJ,this.value);vista={pantalla:'inicio'};render()">${data.map(x=>`<option value="${x.id}" ${x.id===p.id?'selected':''}>${esc(x.nombre)}</option>`).join('')}</select>`:''}
+ <div class="tabs dir"><button id="tabDe" class="${lado==='de'?'on':'off'}" onclick="vista={pantalla:'inicio',lado:'de'};render()">⬇️ De la oficina</button><button id="tabPara" class="${lado==='para'?'on':'off'}" onclick="vista={pantalla:'inicio',lado:'para'};render()">⬆️ Para la oficina</button></div>
+ ${lado==='para'?vPara(p):vDe(p)}`;
+}
+/* Oficina → Campo: lo que la oficina prepara (carpetas, fichas, unidades) */
+function vDe(p){
+ return `<div class="mut dirnota" id="notaDe">Lo que la oficina prepara para ti: especificaciones, tipos de pared, shafts, fire walls, RC1 y unidades.</div>
  ${hayS()?`<div class="card list-item" id="btnCarpetas" onclick="vista={pantalla:'carpetas'};render()"><b>📁 Carpetas de especificaciones</b><div class="mut">${SPECS.map(c=>esc(c.nombre)).join(' · ')}</div><div class="mut">Del proyecto del usuario: revisar antes de usar en obra</div></div>`:''}
  ${p.guiaCodigo?`<details class="card"><summary><b>🔢 Cómo leer el código del muro</b></summary><p>${esc(p.guiaCodigo)}</p></details>`:''}
  <label>🔎 Busca por unidad, piso o tipo de pared</label>
@@ -177,6 +190,122 @@ function vDoc(cid,di){const c=carp(cid),d=c&&c.docs[di];if(!d)return vCarpetas()
  <div class="doc" id="doctxt">${marcar(d.texto,vista.qs||'')}</div>
  <div class="row" style="margin-top:10px">${di>0?`<button class="sec sm" onclick="vista.di=${di-1};render()">◀ Anterior</button>`:''}${di<c.docs.length-1?`<button class="sec sm" onclick="vista.di=${di+1};render()">Siguiente ▶</button>`:''}</div>
  ${c.faltantes?`<p><button class="sm" onclick="vista={pantalla:'carpeta',cid:'${esc(cid)}',qs:vista.qs};render();setTimeout(()=>{const f=$('faltantes');f&&f.scrollIntoView()},0)">⏳ Ver Pendiente / faltantes de ${esc(c.nombre)}</button></p>`:''}</div>`}
+
+/* ---------- CAMPO → OFICINA: reportes locales (sin servidor; se comparten por WhatsApp / SMS / correo) ---------- */
+const LSENV='fto_enviados_v1', LSREC='fto_recibidos_v1', LSNOM='fto_nombre';
+const RT={
+ problema:{ico:'❓',titulo:'Reportar problema / pregunta',corto:'Problema / pregunta',desc:'Algo no cuadra, falta un detalle o tienes una pregunta (RFI).',
+  campos:[{k:'unidad',l:'Unidad',m:'Unidad',u:1},{k:'piso',l:'Piso',m:'Piso',num:1},{k:'texto',l:'Problema o pregunta',m:'Problema / pregunta',ta:1,req:1}]},
+ tm:{ico:'🛠️',titulo:'Trabajo extra T&M',corto:'Trabajo extra T&M',desc:'Trabajo fuera del contrato (tiempo y material). Manda nota y foto el mismo día.',
+  campos:[{k:'unidad',l:'Unidad',m:'Unidad',u:1},{k:'trabajadores',l:'Trabajadores (cuántos)',m:'Trabajadores',num:1,req:1},{k:'horas',l:'Horas (opcional)',m:'Horas',num:1},{k:'texto',l:'Descripción del trabajo extra',m:'Descripción',ta:1,req:1}]},
+ atraso:{ico:'⏱️',titulo:'Atraso',corto:'Atraso',desc:'Algo te está atrasando: di la causa y qué efecto tiene.',
+  campos:[{k:'unidad',l:'Unidad / área (opcional)',m:'Unidad / área',u:1},{k:'causa',l:'Causa (¿por qué hay atraso?)',m:'Causa',ta:1,req:1},{k:'efecto',l:'Efecto (¿qué se atrasa y cuánto?)',m:'Efecto',ta:1,req:1}]}
+};
+const RT_OTRO={ico:'📝',corto:'Nota libre'};
+function rt(t){return RT[t]||RT_OTRO}
+function lsGet(k){try{const v=JSON.parse(localStorage.getItem(k));return Array.isArray(v)?v:[]}catch(e){return []}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+function fechaTxt(d){const z=n=>String(n).padStart(2,'0');return `${z(d.getDate())}/${z(d.getMonth()+1)}/${d.getFullYear()} ${z(d.getHours())}:${z(d.getMinutes())}`}
+function nuevoId(){const d=new Date(),z=n=>String(n).padStart(2,'0');return 'FTO-'+String(d.getFullYear()).slice(2)+z(d.getMonth()+1)+z(d.getDate())+'-'+z(d.getHours())+z(d.getMinutes())+'-'+Math.random().toString(36).slice(2,5).toUpperCase()}
+function msgTexto(r){const d=rt(r.tipo),L=['📋 FIELD TO OFFICE – PARA LA OFICINA','Tipo: '+d.corto,'Proyecto: '+r.proyecto,'Fecha: '+r.fecha];
+ (d.campos||[]).forEach(c=>{const v=(r.campos||{})[c.k];if(v)L.push(c.m+': '+v)});
+ L.push('Foto: '+(r.img?'Sí (va adjunta)':'No'));if(r.nombre)L.push('Reporta: '+r.nombre);L.push('ID: '+r.id);return L.join('\n')}
+function resumen(r){const c=r.campos||{};return (c.texto||c.causa||'').slice(0,90)}
+let fotoTemp=null;
+function vPara(p){const h=lsGet(LSENV);
+ return `<div class="mut dirnota" id="notaPara">Lo que tú mandas a la oficina. Llena el formulario, crea el mensaje y compártelo por WhatsApp, SMS o correo. No hay servidor: el historial se queda solo en este teléfono.</div>
+ ${Object.entries(RT).map(([k,t])=>`<div class="card list-item rform" data-t="${k}" onclick="abrirForm('${k}')"><div class="big">${t.ico} ${esc(t.titulo)}</div><div class="mut">${esc(t.desc)}</div></div>`).join('')}
+ <h3>🕘 Historial en este teléfono</h3>
+ ${h.length?h.map(r=>`<div class="card list-item hist" onclick="vista={pantalla:'reporte',rid:'${esc(r.id)}',lado:'para'};render()"><b>${rt(r.tipo).ico} ${esc(rt(r.tipo).corto)}</b>${r.campos&&r.campos.unidad?` <span class="tag">${esc(r.campos.unidad)}</span>`:''}${r.img?' <span class="tag">📷</span>':''} ${r.compartido?'<span class="tag okt">Compartido ✓</span>':'<span class="tag pen">Sin compartir</span>'}<div class="mut">${esc(r.fecha)} · ${esc(r.id)}</div><div class="snip">${esc(resumen(r))}</div></div>`).join('')+`<button class="sec sm" onclick="borrarHist()">🗑️ Borrar historial</button>`:'<div class="card mut" id="histVacio">Todavía no has mandado nada desde este teléfono.</div>'}`}
+function abrirForm(t){fotoTemp=null;vista={pantalla:'form',tipo:t,lado:'para'};render()}
+function vForm(p,t){const d=RT[t];if(!d){vista={pantalla:'inicio',lado:'para'};return vCampo(p)}
+ return `<button class="sec sm" onclick="vista={pantalla:'inicio',lado:'para'};render()">← Volver</button>
+ <div class="card" id="rform"><h3>${d.ico} ${esc(d.titulo)}</h3><div class="mut">⬆️ Para la oficina · Proyecto: ${esc(p.nombre)}</div>
+ ${d.campos.map(c=>`<label for="r_${c.k}">${esc(c.l)}${c.req?' *':''}</label>${c.ta?`<textarea id="r_${c.k}"></textarea>`:`<input id="r_${c.k}" autocomplete="off"${c.num?' inputmode="numeric"':''}${c.u?' list="unidadesList" oninput="autoPiso(this.value)"':''}>`}`).join('')}
+ <datalist id="unidadesList">${p.unidades.map(u=>`<option value="${esc(u.unidad)}">`).join('')}</datalist>
+ <label for="r_foto">📷 Foto (opcional)</label><input type="file" id="r_foto" accept="image/*" onchange="tomarFoto(this)"><div id="fprev"></div>
+ <label for="r_nombre">Tu nombre (opcional, se recuerda en este teléfono)</label><input id="r_nombre" value="${esc(localStorage.getItem(LSNOM)||'')}">
+ <p><button id="btnCrear" onclick="crearReporte('${t}')">✅ Crear mensaje</button></p><div class="mut">* obligatorio</div></div>`}
+function autoPiso(v){const p=proj(),u=p.unidades.find(x=>x.unidad===v),e=$('r_piso');if(u&&e&&!e.value)e.value=u.piso}
+function fotoChica(file){return new Promise((ok,no)=>{const fr=new FileReader();fr.onerror=no;fr.onload=()=>{const im=new Image();im.onerror=no;im.onload=()=>{const m=1280,s=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.72))};im.src=fr.result};fr.readAsDataURL(file)})}
+async function tomarFoto(inp){const f=inp.files&&inp.files[0];if(!f)return;try{fotoTemp=await fotoChica(f)}catch(e){fotoTemp=null;return alert('No se pudo leer la foto.')}
+ $('fprev').innerHTML=`<img class="adj" src="${fotoTemp}" alt="foto"><p><button class="red sm" onclick="fotoTemp=null;$('r_foto').value='';$('fprev').innerHTML=''">✕ Quitar foto</button></p>`}
+function guardarHist(h){/* si no cabe, quita fotos de los reportes más viejos */
+ if(lsSet(LSENV,h))return true;for(let i=h.length-1;i>0;i--){if(h[i].img){delete h[i].img;h[i].fotoQuitada=1;if(lsSet(LSENV,h))return true}}return false}
+function crearReporte(t){const d=RT[t],p=proj(),c={};
+ for(const x of d.campos){c[x.k]=$('r_'+x.k).value.trim();if(x.req&&!c[x.k]){alert('Falta: '+x.l);$('r_'+x.k).focus();return}}
+ const nombre=$('r_nombre').value.trim();try{localStorage.setItem(LSNOM,nombre)}catch(e){}
+ const now=new Date(),r={id:nuevoId(),tipo:t,ts:now.getTime(),fecha:fechaTxt(now),proyecto:p.nombre,campos:c,nombre,compartido:false};if(fotoTemp)r.img=fotoTemp;
+ const h=lsGet(LSENV);h.unshift(r);if(h.length>50)h.length=50;
+ if(!guardarHist(h)){delete r.img;if(!guardarHist(h))toast('No hay espacio para guardar el historial');else alert('El teléfono no tiene espacio para guardar la foto en el historial. El mensaje sí se creó; adjunta la foto a mano.')}
+ fotoTemp=null;vista={pantalla:'reporte',rid:r.id,lado:'para'};render();toast('Mensaje creado')}
+function repById(id){return lsGet(LSENV).find(x=>x.id===id)}
+function vReporte(id){const r=repById(id);if(!r){vista={pantalla:'inicio',lado:'para'};return vCampo(proj())}
+ const txt=msgTexto(r),d=rt(r.tipo),sub='Field to Office – '+d.corto+(r.campos.unidad?' – '+r.campos.unidad:'');
+ return `<button class="sec sm" onclick="vista={pantalla:'inicio',lado:'para'};render()">← Para la oficina</button>
+ <div class="card" id="reporte"><b>${d.ico} ${esc(d.corto)}</b> <span id="estadoComp" class="tag ${r.compartido?'okt':'pen'}">${r.compartido?'Compartido ✓':'Sin compartir'}</span>
+ <div class="mut">Este es el mensaje para la oficina. Mándalo con uno de los botones.</div>
+ <div class="doc" id="msgtxt">${esc(txt)}</div>
+ ${r.img?`<img class="adj" src="${r.img}" alt="foto del reporte">`:''}${r.fotoQuitada?'<div class="mut">La foto se quitó del historial por falta de espacio.</div>':''}
+ <div class="share">
+  <button id="btnShare" onclick="compartirRep('${esc(r.id)}')">📤 Compartir${r.img?' con foto':''}</button>
+  <a class="btn" id="lnkWa" href="https://wa.me/?text=${encodeURIComponent(txt)}" target="_blank" onclick="marcarComp('${esc(r.id)}')">WhatsApp</a>
+  <a class="btn" id="lnkSms" href="sms:?&body=${encodeURIComponent(txt)}" onclick="marcarComp('${esc(r.id)}')">💬 SMS</a>
+  <a class="btn" id="lnkMail" href="mailto:?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(txt)}" onclick="marcarComp('${esc(r.id)}')">✉️ Correo</a>
+  <button class="sec" id="btnCopiar" onclick="copiar(repTxt('${esc(r.id)}')).then(ok=>{toast(ok?'Mensaje copiado':'No se pudo copiar');if(ok)marcarComp('${esc(r.id)}')})">📋 Copiar</button>
+  ${r.img?`<a class="btn sec" style="background:#333;color:#fff" id="lnkFoto" href="${r.img}" download="foto-${esc(r.id)}.jpg">⬇️ Guardar foto</a>`:''}
+ </div>
+ ${r.img?'<p class="mut">“Compartir con foto” manda texto y foto juntos si el teléfono lo permite. Con WhatsApp (enlace), SMS, correo o Copiar va solo el texto: adjunta la foto a mano.</p>':''}
+ <p><button class="red sm" onclick="borrarRep('${esc(r.id)}')">🗑️ Borrar del historial</button></p></div>`}
+function repTxt(id){const r=repById(id);return r?msgTexto(r):''}
+function marcarComp(id){const h=lsGet(LSENV),r=h.find(x=>x.id===id);if(r&&!r.compartido){r.compartido=true;r.compartidoTs=Date.now();lsSet(LSENV,h)}
+ const e=$('estadoComp');if(e){e.textContent='Compartido ✓';e.className='tag okt'}}
+async function copiar(t){try{await navigator.clipboard.writeText(t);return true}catch(e){}
+ try{const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();return ok}catch(e){return false}}
+function dataFile(u,n){const [h,b]=u.split(','),bin=atob(b),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new File([a],n,{type:(h.match(/:(.*?);/)||[])[1]||'image/jpeg'})}
+async function compartirRep(id){const r=repById(id);if(!r)return;const txt=msgTexto(r);
+ if(navigator.share){const o={title:'Field to Office – '+rt(r.tipo).corto,text:txt};let sinFoto=false;
+  if(r.img){const f=dataFile(r.img,'foto-'+r.id+'.jpg');if(navigator.canShare&&navigator.canShare({files:[f]}))o.files=[f];else sinFoto=true}
+  try{await navigator.share(o);marcarComp(id);if(sinFoto)toast('Este teléfono no manda la foto aquí: usa ⬇️ Guardar foto');return}catch(e){if(e&&e.name==='AbortError')return}}
+ const ok=await copiar(txt);toast(ok?'Texto copiado: pégalo en WhatsApp, SMS o correo':'No se pudo copiar: usa SMS o Correo');if(ok)marcarComp(id)}
+function borrarRep(id){if(!confirm('¿Borrar este reporte del historial de este teléfono?'))return;lsSet(LSENV,lsGet(LSENV).filter(x=>x.id!==id));vista={pantalla:'inicio',lado:'para'};render()}
+function borrarHist(){if(!confirm('¿Borrar todo el historial de este teléfono?'))return;localStorage.removeItem(LSENV);render()}
+
+/* ---------- OFICINA: Recibido del campo (pegar el texto que llegó por WhatsApp / SMS / correo) ---------- */
+function claves(){const k={tipo:'Tipo',proyecto:'Proyecto',fecha:'Fecha',foto:'Foto',reporta:'Reporta',id:'ID'},m={};Object.values(k).forEach(v=>m[nrm(v)]=v);
+ Object.values(RT).forEach(t=>t.campos.forEach(c=>m[nrm(c.m)]=c.m));return m}
+function parseReportes(txt){const K=claves(),bloques=[];let cur=null;
+ String(txt||'').replace(/\r/g,'').split('\n').forEach(line=>{
+  if(/FIELD TO OFFICE/i.test(line)){cur={pares:[],fin:false};bloques.push(cur);return}
+  if(!cur){cur={pares:[],fin:false};bloques.push(cur)}if(cur.fin)return;
+  const m=line.match(/^\s*([^:]{2,30}?)\s*:\s?(.*)$/),k=m&&K[nrm(m[1])];
+  if(k){cur.pares.push([k,m[2].trim()]);if(k==='ID')cur.fin=true}
+  else if(cur.pares.length&&line.trim()){const u=cur.pares[cur.pares.length-1];u[1]+=(u[1]?'\n':'')+line.trim()}
+  else if(line.trim())(cur.libre=cur.libre||[]).push(line.trim())});
+ return bloques.filter(b=>b.pares.length).map(b=>{const g=k=>{const x=b.pares.find(p=>p[0]===k);return x?x[1]:''};
+  const tn=nrm(g('Tipo')),tipo=Object.keys(RT).find(k=>nrm(RT[k].corto)===tn)||'otro';
+  return {id:g('ID')||('SIN-ID-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)),tipo,proyecto:g('Proyecto'),fecha:g('Fecha'),nombre:g('Reporta'),foto:/^s[ií]/i.test(g('Foto')),
+   pares:b.pares.filter(p=>!['Tipo','Proyecto','Fecha','Foto','Reporta','ID'].includes(p[0])),atendido:false}})}
+function importarRec(){const t=$('rec_txt').value;if(!t.trim())return alert('Pega primero el texto del reporte.');
+ let nuevos=parseReportes(t);
+ if(!nuevos.length){if(!confirm('No parece un reporte de la app (no tiene “Tipo:”, “Unidad:”…). ¿Agregarlo como nota libre?'))return;
+  nuevos=[{id:'NOTA-'+Date.now().toString(36).toUpperCase(),tipo:'otro',proyecto:'',fecha:fechaTxt(new Date()),nombre:'',foto:false,pares:[['Texto',t.trim()]],atendido:false}]}
+ const R=lsGet(LSREC);let n=0,rep=0;const ahora=Date.now();
+ nuevos.forEach(x=>{if(R.some(y=>y.id===x.id)){rep++;return}x.recibido=ahora;R.unshift(x);n++});
+ if(!lsSet(LSREC,R))return alert('No hay espacio para guardar.');
+ vista={pantalla:'inicio',lado:'rec'};render();toast(n?`${n} agregado${n===1?'':'s'}${rep?` · ${rep} ya estaba${rep===1?'':'n'}`:''}`:'Ya estaba en la lista')}
+function vRecibido(){const R=lsGet(LSREC).slice().sort((a,b)=>(a.atendido-b.atendido)||((b.recibido||0)-(a.recibido||0)));
+ return `<div class="mut dirnota" id="notaRec">Lo que mandan los supers y foremen desde “⬆️ Para la oficina”.</div>
+ <div class="card" id="recInfo"><h3>📥 Cómo llega lo del campo</h3><p class="mut">Todavía no hay servidor ni chat. El campo llena el formulario en su teléfono y lo manda por WhatsApp, SMS o correo; la foto llega en ese mismo mensaje. Para llevar la lista aquí: copia el texto del mensaje y pégalo abajo. La lista se guarda solo en este aparato.</p>
+ <label for="rec_txt">Pega aquí el texto recibido (puedes pegar varios juntos)</label><textarea id="rec_txt" style="min-height:110px" placeholder="📋 FIELD TO OFFICE – PARA LA OFICINA&#10;Tipo: …&#10;Unidad: …"></textarea>
+ <p><button id="btnImportar" onclick="importarRec()">➕ Agregar a la lista</button></p></div>
+ <h3>📋 Recibidos (${R.length}${R.length?' · '+R.filter(r=>!r.atendido).length+' pendientes':''})</h3>
+ ${R.length?R.map(r=>{const d=rt(r.tipo);return `<div class="card recitem${r.atendido?' atendido':''}" data-id="${esc(r.id)}"><b>${d.ico} ${esc(d.corto)}</b> ${r.atendido?'<span class="tag okt">Atendido ✓</span>':'<span class="tag pen">Pendiente</span>'}${r.foto?' <span class="tag">📷 foto en el mensaje</span>':''}
+  <div class="mut">${[r.proyecto,r.fecha,r.nombre&&('Reporta: '+r.nombre),r.id].filter(Boolean).map(esc).join(' · ')}</div>
+  <div class="spec">${r.pares.map(p=>`<div>${esc(p[0])}</div><div style="white-space:pre-wrap">${esc(p[1])}</div>`).join('')}</div>
+  <div class="row" style="margin-top:10px"><button class="sec sm" onclick="toggleRec('${esc(r.id)}')">${r.atendido?'↩️ Volver a pendiente':'✓ Marcar atendido'}</button><button class="red sm" style="flex:0" onclick="borrarRec('${esc(r.id)}')">🗑️</button></div></div>`}).join(''):'<div class="card mut" id="recVacio">Todavía no hay nada recibido en esta lista.</div>'}`}
+function toggleRec(id){const R=lsGet(LSREC),r=R.find(x=>x.id===id);if(r){r.atendido=!r.atendido;lsSet(LSREC,R)}render()}
+function borrarRec(id){if(!confirm('¿Borrar de la lista?'))return;lsSet(LSREC,lsGet(LSREC).filter(x=>x.id!==id));render()}
 /* ---------- OFICINA ---------- */
 function vOficina(p){
  if(!admin){const tiene=!!localStorage.getItem(LSPIN);
@@ -185,7 +314,14 @@ function vOficina(p){
   <p><button onclick="entrar(${tiene})">Entrar</button></p></div>`;}
  if(vista.pantalla==='editFicha')return vEditFicha(p,vista.id);
  if(vista.pantalla==='editUnidad')return vEditUnidad(p,vista.id);
+ const lado=vista.lado==='rec'?'rec':'subir', nPend=lsGet(LSREC).filter(r=>!r.atendido).length;
  return `${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – no usar en obra · crea un proyecto nuevo con tus datos</div>':''}
+ <div class="tabs dir"><button id="tabSubir" class="${lado==='subir'?'on':'off'}" onclick="vista={pantalla:'inicio',lado:'subir'};render()">⬆️ Subir al campo</button><button id="tabRec" class="${lado==='rec'?'on':'off'}" onclick="vista={pantalla:'inicio',lado:'rec'};render()">⬇️ Recibido del campo${nPend?' ('+nPend+')':''}</button></div>
+ ${lado==='rec'?vRecibido():vSubir(p)}`;
+}
+/* Oficina → Campo: edición de lo que ven supers y foremen */
+function vSubir(p){
+ return `<div class="mut dirnota" id="notaSubir">Lo que preparas aquí lo ven los supers y foremen en “⬇️ De la oficina”.</div>
  <div class="card"><h3>📁 Proyecto</h3>
  <select onchange="localStorage.setItem(LSPROJ,this.value);render()">${data.map(x=>`<option value="${x.id}" ${x.id===p.id?'selected':''}>${esc(x.nombre)}</option>`).join('')}</select>
  <label>Nombre</label><input value="${esc(p.nombre)}" onchange="proj().nombre=this.value;save();render()">
