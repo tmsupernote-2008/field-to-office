@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Field to Office</title>
 <script src="tema.js"></script>
+<script src="i18n_dic.js"></script>
+<script src="i18n.js"></script>
 <meta name="theme-color" content="#111827" data-dark="#0b0f14">
 <meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -158,7 +160,21 @@ header button{min-height:44px;padding:8px 8px;font-size:13.5px;flex:0 0 auto;mar
 #toast{position:fixed;bottom:calc(22px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--tx);color:var(--bg);font-weight:750;padding:13px 20px;border-radius:999px;display:none;z-index:30;box-shadow:var(--sh2);max-width:90vw;text-align:center}
 @media (prefers-reduced-motion:reduce){*,*::before{animation-duration:.001s!important;transition:none!important}.garrow,.ring{animation-duration:1s!important}}
 @media (min-width:700px){.share{grid-template-columns:repeat(3,1fr)}}
-.temaSlot{display:contents}
+.temaSlot,.i18nSlot{display:contents}
+header .i18nBtn{width:40px;min-width:40px;height:44px;min-height:44px;padding:0!important;font-size:19px;margin:0}
+/* con 🌐 hay un botón más arriba: en teléfonos angostos se quita el logo y el subtítulo para que el título quepa en una sola fila */
+@media (max-width:440px){header{gap:5px}header>div:first-child{display:none}header h1{font-size:14.5px;line-height:1.1}header h1 small{display:none}}
+/* 🌐 carpetas: etapas, códigos, fotos (fto-v10) */
+.etn{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:999px;background:var(--acc);color:var(--on-acc);font-weight:900;font-size:17px;margin-right:4px}
+.carpeta.otra .etn{background:var(--sec);color:var(--sec-tx)}
+.codigos summary{cursor:pointer;min-height:40px;display:flex;align-items:center}.codgrp{margin-top:8px}.codlbl{font-weight:750;font-size:14px;margin:6px 0 2px}
+.codtag{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:650;min-height:32px;box-shadow:none}.codtag.hit{outline:2px solid var(--acc)}
+.sintr{font-size:12px}
+.sfgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}.sfit{margin:0;cursor:pointer}.sfit img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px;background:var(--inset);display:block;border:1px solid var(--line)}
+.sfit figcaption{font-size:12.5px;color:var(--mut);margin-top:3px;overflow-wrap:anywhere;line-height:1.3}
+.sfvisor{position:fixed;inset:0;z-index:100003;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:12px}
+.sfvisor .sfin{background:var(--card);color:var(--tx);border-radius:16px;padding:12px;max-width:min(96vw,900px);max-height:94vh;overflow:auto;width:100%}
+.sfvisor img{width:100%;max-height:68vh;object-fit:contain;border-radius:10px;background:#000;display:block}.sfcap{font-weight:700;margin-top:8px;overflow-wrap:anywhere}
 header .temaBtn{width:40px;min-width:40px;height:44px;min-height:44px;padding:0!important;font-size:19px;margin:0}
 </style>
 </head>
@@ -167,6 +183,7 @@ header .temaBtn{width:40px;min-width:40px;height:44px;min-height:44px;padding:0!
   <div style="font-size:26px" aria-hidden="true">📐</div>
   <h1 id="htitle">Field to Office<small id="hsub">Guía de campo de drywall</small></h1>
   <span class="temaSlot" data-tema-slot="sec sm"></span>
+  <span class="i18nSlot" data-i18n-slot="sec sm"></span>
   <button class="sec sm" id="btnModo">🏢 Oficina</button>
 </header>
 <main id="app"></main>
@@ -176,6 +193,7 @@ header .temaBtn{width:40px;min-width:40px;height:44px;min-height:44px;padding:0!
 <script src="marcas.js"></script>
 <script src="guia.js"></script>
 <script src="voz.js"></script>
+<script src="specfotos.js"></script>
 <script>
 /* ===== Field to Office - prototipo =====
    Datos guardados en el teléfono (localStorage; las fotos de “📸 Marcar reparaciones” en IndexedDB, ver marcas.js). El proyecto de ejemplo viene de documentos reales SIN nombres ni códigos; lo que falta dice "Pendiente". */
@@ -221,6 +239,8 @@ function render(){
  const a=$('app'); a.innerHTML=modo==='oficina'?vOficina(p):vCampo(p); window.scrollTo(0,0);
  const q=$('q'); if(q){q.value=vista.q||'';q.oninput=()=>{vista.q=q.value;$('res').innerHTML=resultados(p,q.value)};}
  const qs=$('qs'); if(qs){qs.value=vista.qs||'';qs.oninput=()=>{vista.qs=qs.value;$('sres').innerHTML=specRes(qs.value)};}
+ const qc=$('qc'); if(qc){qc.value=vista.qc||'';qc.oninput=()=>{vista.qc=qc.value;$('cres').innerHTML=carpRes(carp(vista.cid),qc.value);const cd=$('codigos');if(cd){const o=cd.open;cd.outerHTML=codHTML(carp(vista.cid),qc.value)||'';const n=$('codigos');if(n&&o)n.open=true}}}
+ const qd=$('qd'); if(qd){qd.value=vista.qc||vista.qs||'';qd.oninput=()=>docBuscar(qd.value);}
  despuesRender();
 }
 /* ---------- CAMPO ---------- */
@@ -244,7 +264,7 @@ function vCampo(p){
 /* Oficina → Campo: lo que la oficina prepara (carpetas, fichas, unidades) */
 function vDe(p){
  return `<div class="mut dirnota" id="notaDe">Lo que la oficina prepara para ti: especificaciones, tipos de pared, shafts, fire walls, RC1 y unidades.</div>
- ${hayS()?`<div class="card list-item" id="btnCarpetas" onclick="vista={pantalla:'carpetas'};render()"><b>📁 Carpetas de especificaciones</b><div class="mut">${SPECS.map(c=>esc(c.nombre)).join(' · ')}</div><div class="mut">Del proyecto del usuario: revisar antes de usar en obra</div></div>`:''}
+ ${hayS()?`<div class="card list-item" id="btnCarpetas" onclick="vista={pantalla:'carpetas'};render()"><b>📁 Carpetas de especificaciones</b><div class="mut" data-noi18n>${SL().map(c=>esc(nomCarpeta(c))).join(' → ')}</div><div class="mut">Del proyecto del usuario: revisar antes de usar en obra</div></div>`:''}
  ${p.guiaCodigo?`<details class="card"><summary><b>🔢 Cómo leer el código del muro</b></summary><p>${esc(p.guiaCodigo)}</p></details>`:''}
  <label>🔎 Busca por unidad, piso o tipo de pared</label>
  <input id="q" placeholder="Ej: 201, 1 hora, fire, shaft, RC1" autocomplete="off">
@@ -281,44 +301,99 @@ function vFicha(p,id){const f=p.fichas.find(x=>x.id===id);if(!f)return '';
  ${(f.adj||[]).map(x=>x.tipo==='pdf'?`<p><a class="btn" href="${x.data}" download="${esc(x.nombre)}" target="_blank">📄 Abrir ${esc(x.nombre)}</a></p>`:`<img class="adj" src="${x.data}" alt="${esc(x.nombre)}">`).join('')}
  </div>`;
 }
-/* ---------- CARPETAS DE ESPECIFICACIONES (solo texto, de specs.js) ---------- */
+/* ---------- CARPETAS DE ESPECIFICACIONES (solo texto, de specs.js) ----------
+   Orden por secuencia de obra (c.etapa 1-5; 0 = otras) y los códigos de cada oficio dentro de su carpeta (c.codigos).
+   🌐 Traducción: specs.js es el texto base (español). Las traducciones están en specs_<idioma>.js y se cargan solo al escoger
+   ese idioma (el service worker las guarda al usarlas). Los códigos, números y normas no cambian. Manda el original en inglés. */
 const SBAN='<div class="ej">⚠️ DEL PROYECTO DEL USUARIO – revisar antes de usar en obra<br><span style="font-weight:600">Texto limpio de las especificaciones (sin PDFs ni nombres). Lo marcado “Pendiente / faltantes” NO está en los documentos: no adivinar.</span></div>';
 const SBAN1='<div class="ej">⚠️ DEL PROYECTO DEL USUARIO – revisar antes de usar en obra</div>';
+const SPECS_TR=window.SPECS_TR||(window.SPECS_TR={}), SPECS_IDI=['en','pt','ht','fr','ru','uk'], specCarga={};
+function idi(){return window.I18N?I18N.lang:'es'}
+function cargarTr(l){if(SPECS_TR[l]||specCarga[l]==='cargando'||!SPECS_IDI.includes(l))return;specCarga[l]='cargando';
+ const s=document.createElement('script');s.src='specs_'+l+'.js?v='+SPECS_VER;
+ s.onload=()=>{specCarga[l]=SPECS_TR[l]?'ok':'error';if(idi()===l&&modo==='campo'&&/^(inicio|carpetas|carpeta|doc)$/.test(vista.pantalla))render()};
+ s.onerror=()=>{specCarga[l]='error';s.remove();if(idi()===l&&modo==='campo'&&/^(carpetas|carpeta|doc)$/.test(vista.pantalla))render()};
+ document.head.appendChild(s)}
+function trS(){const l=idi();if(l==='es')return null;const T=SPECS_TR[l];if(!T){cargarTr(l);return null}return T}
+let _SL={};
+/* SPECS en el idioma escogido (lo que no tenga traducción queda en el texto base, marcado) */
+function SL(){if(!hayS())return [];const l=idi(),T=trS(),k=l+(T?'+':'-')+SF.length;if(_SL.k===k)return _SL.v;
+ const v=SPECS.map(c=>({...c,nombre:(T&&T.carpetas&&T.carpetas[c.id])||c.nombre,faltantes:T&&T.faltantes&&T.faltantes[c.id]!=null?T.faltantes[c.id]:c.faltantes,ftr:!T||!c.faltantes||!!(T.faltantes&&T.faltantes[c.id]),
+  docs:c.docs.map(d=>{const x=T&&T.docs&&T.docs[d.archivo];return {...d,titulo:(x&&x.titulo)||d.titulo,texto:(x&&x.texto)||d.texto,tr:l==='es'||!!x}})}));
+ _SL={k,v};return v}
+function trEstado(){const l=idi();if(l==='es'||SPECS_TR[l])return '';
+ return specCarga[l]==='error'?'<div class="faltan" id="trError" style="padding:10px">⚠️ La traducción de las carpetas no está en este teléfono (sin conexión). Se muestra el texto en español; vuelve a abrir con internet una vez.</div>'
+  :'<div class="mut" id="trCargando">⏳ Cargando traducción…</div>'}
+const TRNOTA='<div class="modnota" id="notaTrad">ℹ️ La traducción es solo una ayuda. Manda el original en inglés (los documentos del proyecto, en la oficina). Los códigos, números de hoja, normas y medidas no se traducen.</div>';
 function hayS(){return typeof SPECS!=='undefined'&&Array.isArray(SPECS)&&SPECS.length>0}
-function carp(cid){return hayS()?SPECS.find(c=>c.id===cid):null}
+function carp(cid){return hayS()?SL().find(c=>c.id===cid):null}
+function etapaTxt(c){return c.etapa?`Etapa ${c.etapa} de 5`:'Otras carpetas'}
+function nomCarpeta(c){return (c.etapa?c.etapa+'. ':'')+c.nombre}
 /* normaliza sin acentos y guarda el índice original de cada letra */
 function nmap(s){let n='',m=[];for(let i=0;i<s.length;i++){const c=s[i].normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();for(const x of c){n+=x;m.push(i)}}return {n,m}}
 function nrm(s){return nmap(String(s||'')).n}
-function rangos(txt,q){const Q=nrm(q).trim();if(Q.length<2)return [];const {n,m}=nmap(txt),r=[];let i=n.indexOf(Q);while(i>=0){r.push([m[i],m[i+Q.length-1]+1]);i=n.indexOf(Q,i+Q.length)}return r}
-function marcar(txt,q){const r=rangos(txt,q);let h='',k=0;r.forEach(([a,b])=>{h+=esc(txt.slice(k,a))+'<mark>'+esc(txt.slice(a,b))+'</mark>';k=b});h+=esc(txt.slice(k));
- return h.replace(/NO ENCONTRADO|AUN NO SE ENCONTRO|NO existe|NO está/g,x=>`<span class="nf">⏳ ${x}</span>`)}
+function rangos(txt,q){const Q=nrm(q).trim();if(Q.length<2)return [];const {n,m}=nmap(String(txt||'')),r=[];let i=n.indexOf(Q);while(i>=0){r.push([m[i],m[i+Q.length-1]+1]);i=n.indexOf(Q,i+Q.length)}return r}
+const NF_RE=/NO ENCONTRADO|AUN NO SE ENCONTRO|NO existe|NO está|NOT YET FOUND|NOT FOUND|does NOT exist|AINDA NÃO ENCONTRADO|NÃO ENCONTRADO|POKO JWENN|PA JWENN|PAS ENCORE TROUVÉ|NON TROUVÉ|ЕЩЁ НЕ НАЙДЕНО|НЕ НАЙДЕНО|ЩЕ НЕ ЗНАЙДЕНО|НЕ ЗНАЙДЕНО/g;
+function marcar(txt,q){txt=String(txt||'');const r=rangos(txt,q);let h='',k=0;r.forEach(([a,b])=>{h+=esc(txt.slice(k,a))+'<mark>'+esc(txt.slice(a,b))+'</mark>';k=b});h+=esc(txt.slice(k));
+ return h.replace(NF_RE,x=>`<span class="nf">⏳ ${x}</span>`)}
 function nombreDoc(d){return d.archivo.replace(/\.txt$/,'').replace(/_/g,' ')}
+/* en otros idiomas el nombre del archivo (en español) no sirve: se muestra el título traducido y el archivo como referencia */
+function docNom(d){return idi()==='es'?nombreDoc(d):d.titulo}
+function docSub(d){return idi()==='es'?d.titulo:nombreDoc(d)}
+function sinTr(d){return d.tr?'':' <span class="tag pen sintr">Sin traducir: texto en español</span>'}
+function deDe(d){const o=d.de&&carp(d.de);return o?` <span class="tag">↪ de ${esc(nomCarpeta(o))}</span>`:''}
 function vCarpetas(){if(!hayS())return '<div class="card">No hay carpetas en esta versión.</div>';
- return `<button class="sec sm" onclick="vista={pantalla:'inicio'};render()">← Volver</button>${SBAN}
- <h3>📁 Carpetas de especificaciones</h3>
- <label>🔎 Busca en todas las carpetas</label><input id="qs" placeholder="Ej: tornillos, 16&quot; o.c., shaft, nivel 5, primer" autocomplete="off">
+ return `<button class="sec sm" onclick="vista={pantalla:'inicio'};render()">← Volver</button>${SBAN}${TRNOTA}${trEstado()}
+ <h3>📁 Carpetas de especificaciones</h3><div class="mut" id="ordenNota">En orden de obra: 1. Framing → 2. Insulación → 3. Instalación de drywall → 4. Acabado → 5. Pintura.</div>
+ <label for="qs">🔎 Busca en todas las carpetas</label><input id="qs" type="search" placeholder="Ej: tornillos, 16&quot; o.c., shaft, nivel 5, primer" autocomplete="off">
  <div id="sres">${specRes(vista.qs||'')}</div>`}
-function listaCarpetas(){return SPECS.map(c=>`<div class="card list-item carpeta" data-cid="${esc(c.id)}" onclick="vista={pantalla:'carpeta',cid:'${esc(c.id)}',qs:vista.qs};render()"><div class="big">📁 ${esc(c.nombre)}</div><div class="mut">${c.docs.length} documento${c.docs.length===1?'':'s'}${c.faltantes?' · ⏳ con Pendiente / faltantes':''}</div></div>`).join('')}
+function listaCarpetas(){return SL().map(c=>`<div class="card list-item carpeta${c.etapa?'':' otra'}" data-cid="${esc(c.id)}" data-etapa="${c.etapa}" onclick="vista={pantalla:'carpeta',cid:'${esc(c.id)}',qs:vista.qs};render()"><div class="big"><span class="etn">${c.etapa||'+'}</span> <span data-noi18n>📁 ${esc(c.nombre)}</span></div><div class="mut">${etapaTxt(c)} · ${c.docs.length===1?'1 documento':c.docs.length+' documentos'}${c.faltantes?' · ⏳ con Pendiente / faltantes':''}${sfCarpeta(c).length?` · 🖼️ ${sfCarpeta(c).length} fotos`:''}</div></div>`).join('')}
+function sfCarpeta(c){const a=new Set(c.docs.map(d=>d.archivo));return SF.filter(f=>a.has(f.doc))}
+/* un resultado de búsqueda (documento) */
+function hitDoc(c,d,i,q,clave,extra){const capR=sfDe(d.archivo).filter(f=>rangos(f.cap,q).length);
+ const r=rangos(d.titulo+'\n'+d.archivo+'\n'+d.texto,q);if(!r.length&&!capR.length)return '';
+ const t=d.texto,rr=rangos(t,q)[0];const sn=rr?t.slice(Math.max(0,rr[0]-60),rr[1]+80).replace(/\s+/g,' '):d.titulo;
+ return `<div class="card list-item sres" data-doc="${esc(d.archivo)}" onclick="vista={pantalla:'doc',cid:'${esc(c.id)}',di:${i},qs:vista.qs,qc:${clave==='qc'?'vista.qc':"''"}${extra||''}};render()"><b data-noi18n>${esc(docNom(d))}</b>${extra?` <span class="tag" data-noi18n>${esc(nomCarpeta(c))}</span>`:''} <span class="tag">${r.length}×</span>${sinTr(d)}<div class="snip" data-noi18n>…${marcar(sn,q)}…</div>${capR.map(f=>`<div class="snip sfhit">🖼️ <span data-noi18n>${marcar(f.cap,q)}</span></div>`).join('')}</div>`}
 function specRes(q){if(nrm(q).trim().length<2)return listaCarpetas();let h='',tot=0;
- SPECS.forEach(c=>{c.docs.forEach((d,i)=>{const r=rangos(d.titulo+'\n'+d.archivo+'\n'+d.texto,q);if(!r.length)return;tot++;
-  const t=d.texto,rr=rangos(t,q)[0];const sn=rr?t.slice(Math.max(0,rr[0]-60),rr[1]+80).replace(/\s+/g,' '):d.titulo;
-  h+=`<div class="card list-item sres" onclick="vista={pantalla:'doc',cid:'${esc(c.id)}',di:${i},qs:vista.qs,desde:'buscar'};render()"><b>${esc(nombreDoc(d))}</b> <span class="tag">${esc(c.nombre)}</span> <span class="tag">${r.length}×</span><div class="snip">…${marcar(sn,q)}…</div></div>`});
-  const rf=c.faltantes?rangos(c.faltantes,q):[];if(rf.length){tot++;h+=`<div class="card list-item sres" onclick="vista={pantalla:'carpeta',cid:'${esc(c.id)}',qs:vista.qs};render()"><b>⏳ Pendiente / faltantes</b> <span class="tag">${esc(c.nombre)}</span> <span class="tag">${rf.length}×</span></div>`}});
- return tot?`<div class="mut">${tot} resultado${tot===1?'':'s'}</div>`+h:'<div class="card mut">No se encontró nada en las carpetas. Prueba con otra palabra.</div>'}
-function vCarpeta(cid){const c=carp(cid);if(!c)return vCarpetas();
- return `<button class="sec sm" onclick="vista={pantalla:'carpetas',qs:vista.qs};render()">← Carpetas</button>${SBAN1}
- <div class="card"><div class="big">📁 ${esc(c.nombre)}</div><div class="mut">${c.docs.length} documento${c.docs.length===1?'':'s'} · solo texto (los PDF fuente se quedan en la oficina)</div></div>
- ${c.docs.map((d,i)=>`<div class="card list-item docitem" onclick="vista={pantalla:'doc',cid:'${esc(c.id)}',di:${i},qs:vista.qs};render()"><b>📄 ${esc(nombreDoc(d))}</b><div class="mut">${esc(d.titulo)}</div></div>`).join('')}
- ${c.faltantes?`<div class="faltan" id="faltantes"><h3>⏳ Pendiente / faltantes</h3><div class="mut">Esto NO está en los documentos. Pedirlo a la oficina antes de instalar.</div><div class="doc">${marcar(c.faltantes,vista.qs||'')}</div></div>`:''}`}
-function vDoc(cid,di){const c=carp(cid),d=c&&c.docs[di];if(!d)return vCarpetas();
- const back=vista.desde==='buscar'?`vista={pantalla:'carpetas',qs:vista.qs}`:`vista={pantalla:'carpeta',cid:'${esc(cid)}',qs:vista.qs}`;
- const n=rangos(d.texto,vista.qs||'').length;
- return `<button class="sec sm" onclick="${back};render()">← Volver</button>${SBAN1}
- <div class="card"><span class="tag">📁 ${esc(c.nombre)}</span><h3 style="margin-top:6px">${esc(nombreDoc(d))}</h3>
- ${n?`<div class="mut">“${esc(vista.qs)}”: ${n} ${n===1?'vez':'veces'} (marcado)</div>`:''}
- <div class="doc" id="doctxt">${marcar(d.texto,vista.qs||'')}</div>
+ SL().forEach(c=>{c.docs.forEach((d,i)=>{const x=hitDoc(c,d,i,q,'qs',",desde:'buscar'");if(x){tot++;h+=x}});
+  const rf=c.faltantes?rangos(c.faltantes,q):[];if(rf.length){tot++;h+=`<div class="card list-item sres" onclick="vista={pantalla:'carpeta',cid:'${esc(c.id)}',qs:vista.qs};render()"><b>⏳ Pendiente / faltantes</b> <span class="tag" data-noi18n>${esc(nomCarpeta(c))}</span> <span class="tag">${rf.length}×</span></div>`}});
+ return tot?`<div class="mut">${tot===1?'1 resultado':tot+' resultados'}</div>`+h:'<div class="card mut">No se encontró nada en las carpetas. Prueba con otra palabra.</div>'}
+/* 🔢 códigos del oficio, dentro de su carpeta (tal como aparecen en los documentos; no se traducen) */
+const CODG=[['secciones','📑 Secciones de la spec'],['hojas','📐 Hojas de planos'],['normas','📏 Normas y referencias']];
+function codigosDe(cid){const c=SPECS.find(x=>x.id===cid);return (c&&c.codigos)||{}}
+function codHTML(c,q){const C=codigosDe(c.id),g=CODG.filter(([k])=>C[k]&&C[k].length);if(!g.length)return '';
+ return `<details class="card codigos" id="codigos"${q?' open':''}><summary><b>🔢 Códigos de esta carpeta</b></summary><div class="mut">Tal como aparecen en los documentos de esta carpeta (no se traducen). Toca uno para buscarlo aquí.</div>
+ ${g.map(([k,l])=>`<div class="codgrp" data-k="${k}"><div class="codlbl">${l} (${C[k].length})</div><div data-noi18n>${C[k].map(x=>{const s=x.c.join(' · ');return `<button type="button" class="tag codtag${q&&rangos(s,q).length?' hit':''}" data-q="${esc(x.c[0])}" onclick="buscarEnCarpeta(this.dataset.q)">${q?marcar(s,q):esc(s)}</button>`}).join('')}</div></div>`).join('')}</details>`}
+function buscarEnCarpeta(s){vista.qc=s;const e=$('qc');if(e){e.value=s;$('cres').innerHTML=carpRes(carp(vista.cid),s);e.scrollIntoView({block:'start'})}}
+function docLista(c){return c.docs.map((d,i)=>`<div class="card list-item docitem" data-doc="${esc(d.archivo)}" onclick="vista={pantalla:'doc',cid:'${esc(c.id)}',di:${i},qs:vista.qs,qc:vista.qc};render()"><b data-noi18n>📄 ${esc(docNom(d))}</b>${deDe(d)}${sinTr(d)}${sfDe(d.archivo).length?` <span class="tag">🖼️ ${sfDe(d.archivo).length}</span>`:''}<div class="mut" data-noi18n>${esc(docSub(d))}</div></div>`).join('')}
+/* 🔎 búsqueda dentro de la carpeta abierta (texto, títulos, pies de foto, Pendiente y códigos) */
+function carpRes(c,q){if(!c)return '';if(nrm(q).trim().length<2)return docLista(c);let h='',tot=0;
+ c.docs.forEach((d,i)=>{const x=hitDoc(c,d,i,q,'qc');if(x){tot++;h+=x}});
+ const rf=c.faltantes?rangos(c.faltantes,q):[];if(rf.length){tot++;h+=`<div class="card list-item sres" onclick="const f=$('faltantes');f&&f.scrollIntoView()"><b>⏳ Pendiente / faltantes</b> <span class="tag">${rf.length}×</span></div>`}
+ const C=codigosDe(c.id),nc=CODG.reduce((a,[k])=>a+(C[k]||[]).filter(x=>rangos(x.c.join(' '),q).length).length,0);
+ if(nc){tot++;h+=`<div class="card list-item sres" id="codHit" onclick="const d=$('codigos');if(d){d.open=true;d.scrollIntoView()}"><b>🔢 Códigos de esta carpeta</b> <span class="tag">${nc}×</span></div>`}
+ return tot?`<div class="mut" id="cresN">${tot===1?'1 resultado en esta carpeta':tot+' resultados en esta carpeta'}</div>`+h:'<div class="card mut" id="cresVacio">No se encontró nada en esta carpeta. Prueba con otra palabra.</div>'}
+function vCarpeta(cid){const c=carp(cid);if(!c)return vCarpetas();const q=vista.qc||'';
+ return `<button class="sec sm" onclick="vista={pantalla:'carpetas',qs:vista.qs};render()">← Carpetas</button>${SBAN1}${TRNOTA}${trEstado()}
+ <div class="card"><div class="big"><span class="etn">${c.etapa||'+'}</span> <span data-noi18n>📁 ${esc(c.nombre)}</span></div><div class="mut">${etapaTxt(c)} · ${c.docs.length===1?'1 documento':c.docs.length+' documentos'} · solo texto (los PDF fuente se quedan en la oficina)</div></div>
+ <label for="qc">🔎 Busca en esta carpeta</label><input id="qc" type="search" placeholder="Palabra, código o número (ej: 092900, A8.1, ASTM C840)" autocomplete="off">
+ <div id="cres">${carpRes(c,q)}</div>
+ ${codHTML(c,q)}
+ ${c.faltantes?`<div class="faltan" id="faltantes"><h3>⏳ Pendiente / faltantes</h3><div class="mut">Esto NO está en los documentos. Pedirlo a la oficina antes de instalar.</div>${c.ftr?'':'<span class="tag pen sintr">Sin traducir: texto en español</span>'}<div class="doc" data-noi18n>${marcar(c.faltantes,q||vista.qs||'')}</div></div>`:''}`}
+function vDoc(cid,di){const c=carp(cid),d=c&&c.docs[di];if(!d)return vCarpetas();const q=vista.qc||vista.qs||'';
+ const back=vista.desde==='buscar'?`vista={pantalla:'carpetas',qs:vista.qs}`:`vista={pantalla:'carpeta',cid:'${esc(cid)}',qs:vista.qs,qc:vista.qc}`;
+ const n=rangos(d.texto,q).length;
+ return `<button class="sec sm" onclick="${back};render()">← Volver</button>${SBAN1}${TRNOTA}${trEstado()}
+ <div class="card"><span class="tag" data-noi18n>📁 ${esc(nomCarpeta(c))}</span>${deDe(d)}${sinTr(d)}<h3 style="margin-top:6px" data-noi18n>${esc(docNom(d))}</h3>${idi()==='es'?'':`<div class="mut" data-noi18n>${esc(nombreDoc(d))}</div>`}
+ <label for="qd">🔎 Busca en este documento</label><input id="qd" type="search" autocomplete="off" placeholder="Palabra o código">
+ <div class="mut" id="qdN">${n?`“<span data-noi18n>${esc(q)}</span>”: ${n===1?'1 vez':n+' veces'} (marcado)`:''}</div>
+ <div class="doc" id="doctxt" data-noi18n>${marcar(d.texto,q)}</div>
  <div class="row" style="margin-top:10px">${di>0?`<button class="sec sm" onclick="vista.di=${di-1};render()">◀ Anterior</button>`:''}${di<c.docs.length-1?`<button class="sec sm" onclick="vista.di=${di+1};render()">Siguiente ▶</button>`:''}</div>
- ${c.faltantes?`<p><button class="sm" onclick="vista={pantalla:'carpeta',cid:'${esc(cid)}',qs:vista.qs};render();setTimeout(()=>{const f=$('faltantes');f&&f.scrollIntoView()},0)">⏳ Ver Pendiente / faltantes de ${esc(c.nombre)}</button></p>`:''}</div>`}
+ ${c.faltantes?`<p><button class="sm" onclick="vista={pantalla:'carpeta',cid:'${esc(cid)}',qs:vista.qs,qc:vista.qc};render();setTimeout(()=>{const f=$('faltantes');f&&f.scrollIntoView()},0)">⏳ Ver Pendiente / faltantes de esta carpeta</button></p>`:''}</div>
+ ${sfHTML(d.archivo)}`}
+function docBuscar(q){const c=carp(vista.cid),d=c&&c.docs[vista.di];if(!d)return;vista.qc=q;const n=rangos(d.texto,q).length;
+ $('doctxt').innerHTML=marcar(d.texto,q);$('qdN').innerHTML=n?`“<span data-noi18n>${esc(q)}</span>”: ${n===1?'1 vez':n+' veces'} (marcado)`:(nrm(q).trim().length>=2?'0 veces':'');
+ const m=document.querySelector('#doctxt mark');if(m)m.scrollIntoView({block:'center'})}
 
 /* ---------- CAMPO → OFICINA: reportes locales (sin servidor; se comparten por WhatsApp / SMS / correo) ---------- */
 const LSENV='fto_enviados_v1', LSREC='fto_recibidos_v1', LSNOM='fto_nombre';
@@ -338,9 +413,12 @@ function lsGet(k){try{const v=JSON.parse(localStorage.getItem(k));return Array.i
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
 function fechaTxt(d){const z=n=>String(n).padStart(2,'0');return `${z(d.getDate())}/${z(d.getMonth()+1)}/${d.getFullYear()} ${z(d.getHours())}:${z(d.getMinutes())}`}
 function nuevoId(){const d=new Date(),z=n=>String(n).padStart(2,'0');return 'FTO-'+String(d.getFullYear()).slice(2)+z(d.getMonth()+1)+z(d.getDate())+'-'+z(d.getHours())+z(d.getMinutes())+'-'+Math.random().toString(36).slice(2,5).toUpperCase()}
-function msgTexto(r){const d=rt(r.tipo),L=['📋 FIELD TO OFFICE – PARA LA OFICINA','Tipo: '+d.corto,'Proyecto: '+r.proyecto,'Fecha: '+r.fecha];
- (d.campos||[]).forEach(c=>{const v=(r.campos||{})[c.k];if(v)L.push(c.m+': '+v)});
- L.push('Foto: '+(r.img||(r.vistas&&r.vistas.length)?'Sí (va adjunta)'+(r.vistas&&r.vistas.length?' – con los puntos de colores':''):'No'));if(r.nombre)L.push('Reporta: '+r.nombre);L.push('ID: '+r.id);return L.join('\n')}
+/* 🌐 el mensaje sale en el idioma escogido; “⬇️ Recibido del campo” lo entiende en cualquiera de los 7 idiomas */
+function T_(s,lg){return window.I18N?I18N.t(s,null,lg):s}
+function TR_(s){return window.I18N?I18N.tr(s):s}
+function msgTexto(r){const d=rt(r.tipo),L=[T_('📋 FIELD TO OFFICE – PARA LA OFICINA'),T_('Tipo')+': '+T_(d.corto),T_('Proyecto')+': '+TR_(r.proyecto),T_('Fecha')+': '+r.fecha];
+ (d.campos||[]).forEach(c=>{const v=(r.campos||{})[c.k];if(v)L.push(T_(c.m)+': '+TR_(v))});
+ L.push(T_('Foto')+': '+(r.img||(r.vistas&&r.vistas.length)?T_('Sí (va adjunta)')+(r.vistas&&r.vistas.length?T_(' – con los puntos de colores'):''):T_('No')));if(r.nombre)L.push(T_('Reporta')+': '+r.nombre);L.push('ID: '+r.id);return L.join('\n')}
 function resumen(r){const c=r.campos||{};return (c.texto||c.causa||'').slice(0,90)}
 let fotoTemp=null;
 function vPara(p){const h=lsGet(LSENV);
@@ -373,11 +451,11 @@ function crearReporte(t){const d=RT[t],p=proj(),c={};
  fotoTemp=null;vista={pantalla:'reporte',rid:r.id,lado:'para'};render();toast('Mensaje creado')}
 function repById(id){return lsGet(LSENV).find(x=>x.id===id)}
 function vReporte(id){const r=repById(id);if(!r){vista={pantalla:'inicio',lado:'para'};return vCampo(proj())}
- const txt=msgTexto(r),d=rt(r.tipo),sub='Field to Office – '+d.corto+(r.campos.unidad?' – '+r.campos.unidad:'');
+ const txt=msgTexto(r),d=rt(r.tipo),sub='Field to Office – '+T_(d.corto)+(r.campos.unidad?' – '+r.campos.unidad:'');
  return `<button class="sec sm" onclick="vista={pantalla:'inicio',lado:'para'};render()">← Para la oficina</button>
  <div class="card" id="reporte"><b>${d.ico} ${esc(d.corto)}</b> <span id="estadoComp" class="tag ${r.compartido?'okt':'pen'}">${r.compartido?'Compartido ✓':'Sin compartir'}</span>
  <div class="mut">Este es el mensaje para la oficina. Mándalo con uno de los botones.</div>
- <div class="doc" id="msgtxt">${esc(txt)}</div>
+ <div class="doc" id="msgtxt" data-noi18n>${esc(txt)}</div>
  ${r.img?`<img class="adj" src="${r.img}" alt="foto del reporte">`:''}${r.vistas&&r.vistas.length?repFotosHTML(r):''}${r.fotoQuitada?'<div class="mut">La foto se quitó del historial por falta de espacio.</div>':''}
  <div class="share">
   <button id="btnShare" onclick="compartirRep('${esc(r.id)}')">📤 Compartir${r.img||(r.vistas&&r.vistas.length)?' con foto':''}</button>
@@ -396,7 +474,7 @@ async function copiar(t){try{await navigator.clipboard.writeText(t);return true}
  try{const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();return ok}catch(e){return false}}
 function dataFile(u,n){const [h,b]=u.split(','),bin=atob(b),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new File([a],n,{type:(h.match(/:(.*?);/)||[])[1]||'image/jpeg'})}
 async function compartirRep(id){const r=repById(id);if(!r)return;const txt=msgTexto(r);
- if(navigator.share){const o={title:'Field to Office – '+rt(r.tipo).corto,text:txt};let sinFoto=false;
+ if(navigator.share){const o={title:'Field to Office – '+T_(rt(r.tipo).corto),text:txt};let sinFoto=false;
   if(r.img){const f=dataFile(r.img,'foto-'+r.id+'.jpg');if(navigator.canShare&&navigator.canShare({files:[f]}))o.files=[f];else sinFoto=true}
   else if(r.vistas&&r.vistas.length){const fs=(REPF[r.id]||await archivosRep(r)).map(x=>x.file);if(fs.length&&navigator.canShare&&navigator.canShare({files:fs}))o.files=fs;else sinFoto=true}
   try{await navigator.share(o);marcarComp(id);if(sinFoto)toast('Este teléfono no manda la foto aquí: usa ⬇️ Guardar foto');return}catch(e){if(e&&e.name==='AbortError')return}}
@@ -418,8 +496,10 @@ function vModulos(lado){if(!MODULOS.length)return '';
  return `<section class="modulos" id="modulos_${lado}"><h3>🧩 Módulos</h3><div class="mut dirnota">Apps anexas a Field to Office. Se abren en una pestaña nueva; para volver, regresa a esta pestaña.</div>${MODULOS.map(m=>modCard(m,lado)).join('')}</section>`}
 
 /* ---------- OFICINA: Recibido del campo (pegar el texto que llegó por WhatsApp / SMS / correo) ---------- */
-function claves(){const k={tipo:'Tipo',proyecto:'Proyecto',fecha:'Fecha',foto:'Foto',reporta:'Reporta',id:'ID'},m={};Object.values(k).forEach(v=>m[nrm(v)]=v);
- Object.values(RT).forEach(t=>t.campos.forEach(c=>m[nrm(c.m)]=c.m));return m}
+const IDIS=['es','en','pt','ht','fr','ru','uk'];
+function claves(){const k={tipo:'Tipo',proyecto:'Proyecto',fecha:'Fecha',foto:'Foto',reporta:'Reporta',id:'ID'},m={},put=v=>IDIS.forEach(l=>{m[nrm(T_(v,l))]=v});Object.values(k).forEach(put);
+ Object.values(RT).forEach(t=>t.campos.forEach(c=>put(c.m)));return m}
+function esSi(v){v=nrm(v);return IDIS.some(l=>v.startsWith(nrm(T_('Sí',l))))}
 function parseReportes(txt){const K=claves(),bloques=[];let cur=null;
  String(txt||'').replace(/\r/g,'').split('\n').forEach(line=>{
   if(/FIELD TO OFFICE/i.test(line)){cur={pares:[],fin:false};bloques.push(cur);return}
@@ -429,8 +509,8 @@ function parseReportes(txt){const K=claves(),bloques=[];let cur=null;
   else if(cur.pares.length&&line.trim()){const u=cur.pares[cur.pares.length-1];u[1]+=(u[1]?'\n':'')+line.trim()}
   else if(line.trim())(cur.libre=cur.libre||[]).push(line.trim())});
  return bloques.filter(b=>b.pares.length).map(b=>{const g=k=>{const x=b.pares.find(p=>p[0]===k);return x?x[1]:''};
-  const tn=nrm(g('Tipo')),tipo=Object.keys(RT).find(k=>nrm(RT[k].corto)===tn)||'otro';
-  return {id:g('ID')||('SIN-ID-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)),tipo,proyecto:g('Proyecto'),fecha:g('Fecha'),nombre:g('Reporta'),foto:/^s[ií]/i.test(g('Foto')),
+  const tn=nrm(g('Tipo')),tipo=Object.keys(RT).find(k=>IDIS.some(l=>nrm(T_(RT[k].corto,l))===tn))||'otro';
+  return {id:g('ID')||('SIN-ID-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)),tipo,proyecto:g('Proyecto'),fecha:g('Fecha'),nombre:g('Reporta'),foto:esSi(g('Foto')),
    pares:b.pares.filter(p=>!['Tipo','Proyecto','Fecha','Foto','Reporta','ID'].includes(p[0])),atendido:false}})}
 function importarRec(){const t=$('rec_txt').value;if(!t.trim())return alert('Pega primero el texto del reporte.');
  let nuevos=parseReportes(t);
@@ -475,7 +555,7 @@ function vSubir(p){
  <div class="row" style="margin-top:10px"><button class="sec sm" onclick="nuevoProyecto()">+ Proyecto nuevo</button><button class="red sm" onclick="borrarProyecto()">Borrar proyecto</button></div></div>
  <div class="card"><h3>🔗 Compartir con supers y foremen</h3><p class="mut">Crea un enlace con las fichas y unidades de este proyecto. Al abrirlo, el proyecto se guarda en su teléfono. (En este prototipo, las fotos y PDFs no viajan en el enlace.)</p>
  <button onclick="compartir()">📨 Crear enlace</button><div id="enl"></div></div>
- ${hayS()?`<div class="card"><h3>📁 Carpetas de especificaciones</h3><p class="mut">Texto limpio de las specs del proyecto (sin PDFs). Vienen con la app; se actualizan con cada versión. Las fichas y unidades se siguen editando abajo.</p>${SPECS.map(c=>`<span class="tag">${esc(c.nombre)} · ${c.docs.length}</span>`).join('')}<p><button class="sec sm" onclick="modo='campo';vista={pantalla:'carpetas'};render()">👁️ Ver como campo</button></p></div>`:''}
+ ${hayS()?`<div class="card"><h3>📁 Carpetas de especificaciones</h3><p class="mut">Texto limpio de las specs del proyecto (sin PDFs). Vienen con la app; se actualizan con cada versión. Las fichas y unidades se siguen editando abajo.</p>${SL().map(c=>`<span class="tag"><span data-noi18n>${esc(nomCarpeta(c))}</span> · ${c.docs.length}</span>`).join('')}<p><button class="sec sm" onclick="modo='campo';vista={pantalla:'carpetas'};render()">👁️ Ver como campo</button></p></div>`:''}
  <h3>🧱 Fichas por tipo de pared</h3>
  ${p.fichas.map(f=>`<div class="card list-item" onclick="vista={pantalla:'editFicha',id:'${esc(f.id)}'};render()"><b>${esc(f.id)}</b> ${tagTipo(f.tipo)}<div class="mut">${esc(f.nombre)} · ${(f.adj||[]).length} archivos</div></div>`).join('')}
  <button class="sec" onclick="vista={pantalla:'editFicha',id:null};render()">+ Nueva ficha</button>
@@ -537,10 +617,18 @@ async function leerEnlace(){const m=location.hash.match(/^#p=(.+)$/);if(!m)retur
   const i=data.findIndex(x=>x.id===p.id);if(i>=0){p.fichas.forEach(f=>{const old=data[i].fichas.find(o=>o.id===f.id);if(old)f.adj=old.adj||[]});data[i]=p}else data.push(p);
   localStorage.setItem(LSPROJ,p.id);save();toast('Proyecto recibido: '+p.nombre)}catch(e){alert('El enlace no es válido o está incompleto.')}
  history.replaceState(null,'',location.pathname)}
-function exportar(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));a.download='field-to-office-respaldo.json';a.click()}
-function importar(inp){const fr=new FileReader();fr.onload=()=>{try{const d=JSON.parse(fr.result);if(!Array.isArray(d))throw 0;data=d;save();toast('Importado');render()}catch(e){alert('Archivo no válido')}};fr.readAsText(inp.files[0])}
+/* respaldo: proyectos + 🖼️ fotos de las carpetas (formato 2). Sigue leyendo los respaldos viejos (solo la lista de proyectos). */
+async function respaldoObj(){return {app:'field-to-office',formato:2,proyectos:data,specFotos:await sfRespaldo()}}
+async function exportar(){const o=await respaldoObj();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o)],{type:'application/json'}));a.download='field-to-office-respaldo.json';a.click()}
+async function importarObj(d){const pr=Array.isArray(d)?d:(d&&Array.isArray(d.proyectos)?d.proyectos:null);if(!pr)throw 0;data=pr;save();
+ const n=d&&d.specFotos?await sfRestaurar(d.specFotos):0;toast(n?'Importado · '+n+' fotos':'Importado');render()}
+function importar(inp){const fr=new FileReader();fr.onload=async()=>{try{await importarObj(JSON.parse(fr.result))}catch(e){alert('Archivo no válido')}};fr.readAsText(inp.files[0])}
 $('btnModo').onclick=()=>{modo=modo==='oficina'?'campo':'oficina';vista={pantalla:'inicio'};render()};
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
+/* 🌐 al cambiar de idioma: la pantalla se traduce sola; las que arman texto (carpetas, mensaje) se vuelven a dibujar */
+if(window.I18N)I18N.onChange(l=>{_SL={};if(l!=='es')cargarTr(l);if(!/^(marcar|verCap)$/.test(vista.pantalla))render()});
+if(window.I18N&&I18N.lang!=='es')cargarTr(I18N.lang);
+sfCargar().then(()=>{if(/^(carpetas|carpeta|doc)$/.test(vista.pantalla))render()});
 leerEnlace().then(render);
 </script>
 </body>

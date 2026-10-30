@@ -11,8 +11,13 @@
 const VozSR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const VOZ={rec:null,el:null,antes:'',despues:'',ultimo:'',on:false,negado:false,reint:0};
 const VOZ_HINT='🎤 Para dictar, usa el micrófono del teclado del teléfono.';
-function vozLang(){let l='';try{l=localStorage.getItem('fto_idioma')||''}catch(e){}l=l||document.documentElement.lang||'es';
- if(/^es$/i.test(l)){const n=(navigator.languages||[navigator.language||'']).find(x=>/^es-/i.test(x||''));l=n||'es-US'}return l}
+/* 🌐 idioma del dictado = idioma escogido con el botón 🌐 (i18n.js). Si el teléfono tiene una región de ese idioma
+   (ej. es-MX, pt-PT, fr-CA) se usa esa; si no: es-US, en-US, pt-BR, ht-HT, fr-FR, ru-RU, uk-UA. */
+function vozLang(){let l='';try{l=(window.I18N&&I18N.lang)||localStorage.getItem('fto_idioma')||''}catch(e){}l=(l||document.documentElement.lang||'es').toLowerCase();
+ const base=l.split(/[-_]/)[0];if(l.includes('-'))return l;
+ const n=(navigator.languages||[navigator.language||'']).find(x=>new RegExp('^'+base+'-','i').test(x||''));
+ const def={es:'es-US',en:'en-US',pt:'pt-BR',ht:'ht-HT',fr:'fr-FR',ru:'ru-RU',uk:'uk-UA'};if(n&&/^es-419$/i.test(n))return 'es-US';/* “es-419” (español latinoamericano en Android/Chrome) no es un idioma del dictado: es-US */
+ return n||def[base]||base}
 function vozPos(el){el._micPos=[el.selectionStart,el.selectionEnd]}
 function vozAttach(){
  if(VOZ.on&&VOZ.el&&!document.body.contains(VOZ.el))vozStop(true);

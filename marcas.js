@@ -247,4 +247,4 @@ function despuesRender(){const s=vista.pantalla;if(typeof rolBadge==='function')
  if(modo==='campo'){if(s==='marcar')setupMarcar();if(s==='verCap')setupCap();
   if(s==='marcas'){const q=$('qm');if(q){q.value=vista.qm||'';q.oninput=()=>{vista.qm=q.value;$('mres').innerHTML=marcasRes(proj(),q.value)}}}
   if(s==='reporte')llenarRepFotos()}
- llenarThumbs();if(typeof vozAttach==='function')vozAttach()}
+ llenarThumbs();if(typeof sfLlenar==='function')sfLlenar();if(typeof vozAttach==='function')vozAttach()}
