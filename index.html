@@ -33,6 +33,10 @@ textarea{min-height:70px}label{display:block;margin:10px 0 4px;color:var(--mut);
 .tabs{display:flex;gap:6px;margin-bottom:8px}.tabs button{flex:1}
 .list-item{cursor:pointer}.list-item:active{background:#262626}
 img.adj{max-width:100%;border-radius:10px;margin-top:8px;border:1px solid var(--line)}
+.doc{white-space:pre-wrap;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;line-height:1.45;overflow-wrap:anywhere;background:#000;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:8px}
+mark{background:var(--acc);color:#000;border-radius:3px;padding:0 1px}.nf{color:var(--warn);font-weight:700}
+.faltan{background:#2e2700;border:2px dashed var(--warn);border-radius:12px;padding:12px;margin:10px 0}.faltan h3{color:var(--warn);margin:0 0 6px}
+.snip{font-size:13px;color:var(--mut);margin-top:4px;overflow-wrap:anywhere}
 .hidden{display:none!important}#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ok);color:#000;font-weight:700;padding:10px 16px;border-radius:10px;display:none;z-index:9}
 </style>
 </head>
@@ -44,6 +48,7 @@ img.adj{max-width:100%;border-radius:10px;margin-top:8px;border:1px solid var(--
 </header>
 <main id="app"></main>
 <div id="toast"></div>
+<script src="specs.js"></script>
 <script>
 /* ===== Field to Office - prototipo =====
    Datos guardados en el teléfono (localStorage). El proyecto de ejemplo viene de documentos reales SIN nombres ni códigos; lo que falta dice "Pendiente". */
@@ -87,14 +92,19 @@ function render(){
  $('btnModo').textContent=modo==='oficina'?'👷 Campo':'🏢 Oficina';
  const a=$('app'); a.innerHTML=modo==='oficina'?vOficina(p):vCampo(p); window.scrollTo(0,0);
  const q=$('q'); if(q){q.value=vista.q||'';q.oninput=()=>{vista.q=q.value;$('res').innerHTML=resultados(p,q.value)};}
+ const qs=$('qs'); if(qs){qs.value=vista.qs||'';qs.oninput=()=>{vista.qs=qs.value;$('sres').innerHTML=specRes(qs.value)};}
 }
 /* ---------- CAMPO ---------- */
 function vCampo(p){
  if(!p)return '<div class="card">No hay proyectos. Pide el enlace a la oficina.</div>';
  if(vista.pantalla==='ficha')return vFicha(p,vista.id);
  if(vista.pantalla==='unidad')return vUnidad(p,vista.id);
+ if(vista.pantalla==='carpetas')return vCarpetas();
+ if(vista.pantalla==='carpeta')return vCarpeta(vista.cid);
+ if(vista.pantalla==='doc')return vDoc(vista.cid,vista.di);
  return `${p.ejemplo?'<div class="ej">⚠️ EJEMPLO – no usar en obra<br><span style="font-weight:600">Datos de documentos reales sin nombres. Lo que dice “Pendiente” falta en los documentos.</span></div>':''}
  ${data.length>1?`<select onchange="localStorage.setItem(LSPROJ,this.value);vista={pantalla:'inicio'};render()">${data.map(x=>`<option value="${x.id}" ${x.id===p.id?'selected':''}>${esc(x.nombre)}</option>`).join('')}</select>`:''}
+ ${hayS()?`<div class="card list-item" id="btnCarpetas" onclick="vista={pantalla:'carpetas'};render()"><b>📁 Carpetas de especificaciones</b><div class="mut">${SPECS.map(c=>esc(c.nombre)).join(' · ')}</div><div class="mut">Del proyecto del usuario: revisar antes de usar en obra</div></div>`:''}
  ${p.guiaCodigo?`<details class="card"><summary><b>🔢 Cómo leer el código del muro</b></summary><p>${esc(p.guiaCodigo)}</p></details>`:''}
  <label>🔎 Busca por unidad, piso o tipo de pared</label>
  <input id="q" placeholder="Ej: 201, 1 hora, fire, shaft, RC1" autocomplete="off">
@@ -129,6 +139,44 @@ function vFicha(p,id){const f=p.fichas.find(x=>x.id===id);if(!f)return '';
  ${(f.adj||[]).map(x=>x.tipo==='pdf'?`<p><a class="btn" style="display:inline-block;text-decoration:none" href="${x.data}" download="${esc(x.nombre)}" target="_blank">📄 Abrir ${esc(x.nombre)}</a></p>`:`<img class="adj" src="${x.data}" alt="${esc(x.nombre)}">`).join('')}
  </div>`;
 }
+/* ---------- CARPETAS DE ESPECIFICACIONES (solo texto, de specs.js) ---------- */
+const SBAN='<div class="ej">⚠️ DEL PROYECTO DEL USUARIO – revisar antes de usar en obra<br><span style="font-weight:600">Texto limpio de las especificaciones (sin PDFs ni nombres). Lo marcado “Pendiente / faltantes” NO está en los documentos: no adivinar.</span></div>';
+const SBAN1='<div class="ej">⚠️ DEL PROYECTO DEL USUARIO – revisar antes de usar en obra</div>';
+function hayS(){return typeof SPECS!=='undefined'&&Array.isArray(SPECS)&&SPECS.length>0}
+function carp(cid){return hayS()?SPECS.find(c=>c.id===cid):null}
+/* normaliza sin acentos y guarda el índice original de cada letra */
+function nmap(s){let n='',m=[];for(let i=0;i<s.length;i++){const c=s[i].normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();for(const x of c){n+=x;m.push(i)}}return {n,m}}
+function nrm(s){return nmap(String(s||'')).n}
+function rangos(txt,q){const Q=nrm(q).trim();if(Q.length<2)return [];const {n,m}=nmap(txt),r=[];let i=n.indexOf(Q);while(i>=0){r.push([m[i],m[i+Q.length-1]+1]);i=n.indexOf(Q,i+Q.length)}return r}
+function marcar(txt,q){const r=rangos(txt,q);let h='',k=0;r.forEach(([a,b])=>{h+=esc(txt.slice(k,a))+'<mark>'+esc(txt.slice(a,b))+'</mark>';k=b});h+=esc(txt.slice(k));
+ return h.replace(/NO ENCONTRADO|AUN NO SE ENCONTRO|NO existe|NO está/g,x=>`<span class="nf">⏳ ${x}</span>`)}
+function nombreDoc(d){return d.archivo.replace(/\.txt$/,'').replace(/_/g,' ')}
+function vCarpetas(){if(!hayS())return '<div class="card">No hay carpetas en esta versión.</div>';
+ return `<button class="sec sm" onclick="vista={pantalla:'inicio'};render()">← Volver</button>${SBAN}
+ <h3>📁 Carpetas de especificaciones</h3>
+ <label>🔎 Busca en todas las carpetas</label><input id="qs" placeholder="Ej: tornillos, 16&quot; o.c., shaft, nivel 5, primer" autocomplete="off">
+ <div id="sres">${specRes(vista.qs||'')}</div>`}
+function listaCarpetas(){return SPECS.map(c=>`<div class="card list-item carpeta" data-cid="${esc(c.id)}" onclick="vista={pantalla:'carpeta',cid:'${esc(c.id)}',qs:vista.qs};render()"><div class="big">📁 ${esc(c.nombre)}</div><div class="mut">${c.docs.length} documento${c.docs.length===1?'':'s'}${c.faltantes?' · ⏳ con Pendiente / faltantes':''}</div></div>`).join('')}
+function specRes(q){if(nrm(q).trim().length<2)return listaCarpetas();let h='',tot=0;
+ SPECS.forEach(c=>{c.docs.forEach((d,i)=>{const r=rangos(d.titulo+'\n'+d.archivo+'\n'+d.texto,q);if(!r.length)return;tot++;
+  const t=d.texto,rr=rangos(t,q)[0];const sn=rr?t.slice(Math.max(0,rr[0]-60),rr[1]+80).replace(/\s+/g,' '):d.titulo;
+  h+=`<div class="card list-item sres" onclick="vista={pantalla:'doc',cid:'${esc(c.id)}',di:${i},qs:vista.qs,desde:'buscar'};render()"><b>${esc(nombreDoc(d))}</b> <span class="tag">${esc(c.nombre)}</span> <span class="tag">${r.length}×</span><div class="snip">…${marcar(sn,q)}…</div></div>`});
+  const rf=c.faltantes?rangos(c.faltantes,q):[];if(rf.length){tot++;h+=`<div class="card list-item sres" onclick="vista={pantalla:'carpeta',cid:'${esc(c.id)}',qs:vista.qs};render()"><b>⏳ Pendiente / faltantes</b> <span class="tag">${esc(c.nombre)}</span> <span class="tag">${rf.length}×</span></div>`}});
+ return tot?`<div class="mut">${tot} resultado${tot===1?'':'s'}</div>`+h:'<div class="card mut">No se encontró nada en las carpetas. Prueba con otra palabra.</div>'}
+function vCarpeta(cid){const c=carp(cid);if(!c)return vCarpetas();
+ return `<button class="sec sm" onclick="vista={pantalla:'carpetas',qs:vista.qs};render()">← Carpetas</button>${SBAN1}
+ <div class="card"><div class="big">📁 ${esc(c.nombre)}</div><div class="mut">${c.docs.length} documento${c.docs.length===1?'':'s'} · solo texto (los PDF fuente se quedan en la oficina)</div></div>
+ ${c.docs.map((d,i)=>`<div class="card list-item docitem" onclick="vista={pantalla:'doc',cid:'${esc(c.id)}',di:${i},qs:vista.qs};render()"><b>📄 ${esc(nombreDoc(d))}</b><div class="mut">${esc(d.titulo)}</div></div>`).join('')}
+ ${c.faltantes?`<div class="faltan" id="faltantes"><h3>⏳ Pendiente / faltantes</h3><div class="mut">Esto NO está en los documentos. Pedirlo a la oficina antes de instalar.</div><div class="doc">${marcar(c.faltantes,vista.qs||'')}</div></div>`:''}`}
+function vDoc(cid,di){const c=carp(cid),d=c&&c.docs[di];if(!d)return vCarpetas();
+ const back=vista.desde==='buscar'?`vista={pantalla:'carpetas',qs:vista.qs}`:`vista={pantalla:'carpeta',cid:'${esc(cid)}',qs:vista.qs}`;
+ const n=rangos(d.texto,vista.qs||'').length;
+ return `<button class="sec sm" onclick="${back};render()">← Volver</button>${SBAN1}
+ <div class="card"><span class="tag">📁 ${esc(c.nombre)}</span><h3 style="margin-top:6px">${esc(nombreDoc(d))}</h3>
+ ${n?`<div class="mut">“${esc(vista.qs)}”: ${n} ${n===1?'vez':'veces'} (marcado)</div>`:''}
+ <div class="doc" id="doctxt">${marcar(d.texto,vista.qs||'')}</div>
+ <div class="row" style="margin-top:10px">${di>0?`<button class="sec sm" onclick="vista.di=${di-1};render()">◀ Anterior</button>`:''}${di<c.docs.length-1?`<button class="sec sm" onclick="vista.di=${di+1};render()">Siguiente ▶</button>`:''}</div>
+ ${c.faltantes?`<p><button class="sm" onclick="vista={pantalla:'carpeta',cid:'${esc(cid)}',qs:vista.qs};render();setTimeout(()=>{const f=$('faltantes');f&&f.scrollIntoView()},0)">⏳ Ver Pendiente / faltantes de ${esc(c.nombre)}</button></p>`:''}</div>`}
 /* ---------- OFICINA ---------- */
 function vOficina(p){
  if(!admin){const tiene=!!localStorage.getItem(LSPIN);
@@ -144,6 +192,7 @@ function vOficina(p){
  <div class="row" style="margin-top:10px"><button class="sec sm" onclick="nuevoProyecto()">+ Proyecto nuevo</button><button class="red sm" onclick="borrarProyecto()">Borrar proyecto</button></div></div>
  <div class="card"><h3>🔗 Compartir con supers y foremen</h3><p class="mut">Crea un enlace con las fichas y unidades de este proyecto. Al abrirlo, el proyecto se guarda en su teléfono. (En este prototipo, las fotos y PDFs no viajan en el enlace.)</p>
  <button onclick="compartir()">📨 Crear enlace</button><div id="enl"></div></div>
+ ${hayS()?`<div class="card"><h3>📁 Carpetas de especificaciones</h3><p class="mut">Texto limpio de las specs del proyecto (sin PDFs). Vienen con la app; se actualizan con cada versión. Las fichas y unidades se siguen editando abajo.</p>${SPECS.map(c=>`<span class="tag">${esc(c.nombre)} · ${c.docs.length}</span>`).join('')}<p><button class="sec sm" onclick="modo='campo';vista={pantalla:'carpetas'};render()">👁️ Ver como campo</button></p></div>`:''}
  <h3>🧱 Fichas por tipo de pared</h3>
  ${p.fichas.map(f=>`<div class="card list-item" onclick="vista={pantalla:'editFicha',id:'${esc(f.id)}'};render()"><b>${esc(f.id)}</b> ${tagTipo(f.tipo)}<div class="mut">${esc(f.nombre)} · ${(f.adj||[]).length} archivos</div></div>`).join('')}
  <button class="sec" onclick="vista={pantalla:'editFicha',id:null};render()">+ Nueva ficha</button>
